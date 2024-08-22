@@ -9,6 +9,7 @@ fi
 
 export ARCH_FLAGS="--allow_running_as_root"
 export DNNL_FLAGS="--use_dnnl"
+export DML_FLAGS=""
 export OPENMP_FLAGS= # "--use_openmp"
 export CUDAFLAGS="-v"
 export CUDACXX="/usr/local/cuda/bin/nvcc"
@@ -55,6 +56,7 @@ case $PLATFORM in
         export CC="cl.exe"
         export CXX="cl.exe"
         export ARCH_FLAGS=
+        export DML_FLAGS="use_dml"
         export PYTHON_BIN_PATH=$(which python.exe)
         ;;
 esac
@@ -167,7 +169,7 @@ sedinplace 's/UTFChars(javaNameStrings/UTFChars((jstring)javaNameStrings/g' java
 sedinplace 's/initializers = allocarray/initializers = (const OrtValue**)allocarray/g' java/src/main/native/ai_onnxruntime_OrtSession_SessionOptions.cpp
 
 which ctest3 &> /dev/null && CTEST="ctest3" || CTEST="ctest"
-"$PYTHON_BIN_PATH" tools/ci_build/build.py --build_dir ../build --config Release --cmake_path "$CMAKE" --ctest_path "$CTEST" --build_shared_lib $ARCH_FLAGS $DNNL_FLAGS $OPENMP_FLAGS $GPU_FLAGS
+"$PYTHON_BIN_PATH" tools/ci_build/build.py --build_dir ../build --config Release --cmake_path "$CMAKE" --ctest_path "$CTEST" --build_shared_lib $ARCH_FLAGS $DNNL_FLAGS $OPENMP_FLAGS $GPU_FLAGS $DML_FLAGS
 
 # install headers and libraries in standard directories
 cp -r include/* ../include
