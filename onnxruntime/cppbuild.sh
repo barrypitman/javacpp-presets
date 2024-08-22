@@ -56,7 +56,7 @@ case $PLATFORM in
         export CC="cl.exe"
         export CXX="cl.exe"
         export ARCH_FLAGS=
-        export DML_FLAGS="use_dml"
+        export DML_FLAGS="--use_dml"
         export PYTHON_BIN_PATH=$(which python.exe)
         ;;
 esac
