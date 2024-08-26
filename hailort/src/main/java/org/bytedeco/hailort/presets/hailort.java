@@ -6,10 +6,14 @@ import org.bytedeco.javacpp.tools.*;
 
 @Properties(
         value = {
-                @Platform(include = "hailort.h"),
+                @Platform(include = {
+                        "hailort.h",
+                        "platform.h"
+                }),
         },
         target = "org.bytedeco.hailort",
-        global = "org.bytedeco.hailort.global.zlib"
+        global = "org.bytedeco.hailort.global.hailort",
+        helper = "org.bytedeco.hailort.HailoHelper"
 )
 public class hailort implements InfoMapper {
 
@@ -19,31 +23,42 @@ public class hailort implements InfoMapper {
 
     @Override
     public void map(InfoMap infoMap) {
-        infoMap.put(new Info("HAILO_MAX_ENUM", "HAILO_INFINITE", "HAILO_DEFAULT_ETH_SCAN_TIMEOUT_MS",
-                        "HAILO_DEFAULT_ETH_CONTROL_PORT", "HAILO_DEFAULT_ETH_DEVICE_PORT",
-                        "HAILO_DEFAULT_ETH_MAX_PAYLOAD_SIZE", "HAILO_DEFAULT_ETH_MAX_NUMBER_OF_RETRIES",
-                        "HAILO_ETH_ADDRESS_ANY", "HAILO_ETH_PORT_ANY", "HAILO_MAX_NAME_SIZE",
-                        "HAILO_MAX_STREAM_NAME_SIZE", "HAILO_MAX_BOARD_NAME_LENGTH", "HAILO_MAX_DEVICE_ID_LENGTH",
-                        "HAILO_MAX_SERIAL_NUMBER_LENGTH", "HAILO_MAX_PART_NUMBER_LENGTH",
-                        "HAILO_MAX_PRODUCT_NAME_LENGTH", "HAILO_DEFAULT_INIT_SAMPLING_PERIOD_US",
-                        "HAILO_DEFAULT_INIT_AVERAGING_FACTOR", "HAILO_DEFAULT_BUFFERS_THRESHOLD",
-                        "HAILO_DEFAULT_MAX_ETHERNET_BANDWIDTH_BYTES_PER_SEC", "HAILO_MAX_STREAMS_COUNT",
-                        "HAILO_DEFAULT_BATCH_SIZE", "HAILO_MAX_NETWORK_GROUPS", "HAILO_MAX_NETWORK_GROUP_NAME_SIZE",
-                        "HAILO_MAX_NETWORK_NAME_SIZE", "HAILO_MAX_NETWORKS_IN_NETWORK_GROUP", "HAILO_PCIE_ANY_DOMAIN",
-                        "HAILO_DEFAULT_VSTREAM_QUEUE_SIZE", "HAILO_DEFAULT_VSTREAM_TIMEOUT_MS",
-                        "HAILO_DEFAULT_ASYNC_INFER_TIMEOUT_MS", "HAILO_DEFAULT_ASYNC_INFER_QUEUE_SIZE",
-                        "HAILO_DEFAULT_DEVICE_COUNT", "HAILO_SOC_ID_LENGTH", "HAILO_ETH_MAC_LENGTH",
-                        "HAILO_UNIT_LEVEL_TRACKING_BYTES_LENGTH", "HAILO_SOC_PM_VALUES_BYTES_LENGTH",
-                        "HAILO_MAX_TEMPERATURE_THROTTLING_LEVELS_NUMBER", "HAILO_UNIQUE_VDEVICE_GROUP_ID",
-                        "HAILO_DEFAULT_VDEVICE_GROUP_ID", "HAILO_SCHEDULER_PRIORITY_NORMAL",
-                        "HAILO_SCHEDULER_PRIORITY_MAX", "HAILO_SCHEDULER_PRIORITY_MIN", "MAX_NUMBER_OF_PLANES",
-                        "NUMBER_OF_PLANES_NV12_NV21", "NUMBER_OF_PLANES_I420").cppTypes().annotations())
+        infoMap.put(new Info("hailort.h").linePatterns("#ifdef __cplusplus", "#endif").skip());
 
+        // these variables are defined in HailoHelper
+        infoMap.put(new Info("hailo_status").cast().valueTypes("int").pointerTypes("IntPointer"));
+        infoMap.put(new Info("HAILO_STATUS_VARIABLES").skip());
 
-                .put(new Info("HAILO_STATUS_VARIABLES").translate(false)) // Enums are defined via macros, handle separately if necessary
+        // macros and constants
+        infoMap.put(new Info("HAILO_INFINITE").javaText("public static final long HAILO_INFINITE = 0xFFFFFFFFL;"));
+        infoMap.put(new Info("HAILO_PCIE_ANY_DOMAIN").javaText("public static final long HAILO_PCIE_ANY_DOMAIN = 0xFFFFFFFFL;"));
+        infoMap.put(new Info("HAILO_ETH_ADDRESS_ANY").javaText("public static final String HAILO_ETH_ADDRESS_ANY = \"0.0.0.0\";"));
+        infoMap.put(new Info("HAILORTAPI").cast().valueTypes("int").pointerTypes("IntPointer"));
+        infoMap.put(new Info("HAILO_UNIQUE_VDEVICE_GROUP_ID").javaText("public static final String HAILO_UNIQUE_VDEVICE_GROUP_ID = \"UNIQUE\";"));
+        infoMap.put(new Info("HAILO_DEFAULT_VDEVICE_GROUP_ID").javaText("public static final String HAILO_DEFAULT_VDEVICE_GROUP_ID = HAILO_UNIQUE_VDEVICE_GROUP_ID;"));
+        infoMap.put(new Info("HAILO_DEFAULT_INIT_SAMPLING_PERIOD_US").javaText("public static final int HAILO_DEFAULT_INIT_SAMPLING_PERIOD_US = 1100;"));
+        infoMap.put(new Info("HAILO_DEFAULT_INIT_AVERAGING_FACTOR").javaText("public static final int HAILO_DEFAULT_INIT_AVERAGING_FACTOR = 256;"));
 
-                .put(new Info("float32_t", "float64_t", "nms_bbox_counter_t").cast().pointerTypes("FloatPointer", "DoublePointer", "IntPointer"))
-                .put(new Info("hailo_version_t").translate()) // This will require a manual translation, mapping struct fields
-                .put(new Info("hailo_status").cast().valueTypes("int").pointerTypes("IntPointer"));
+        // mapping e.g. typedef struct _hailo_configured_network_group *hailo_configured_network_group;
+        infoMap.put(new Info("hailo_hef").valueTypes("_hailo_hef").pointerTypes("@ByPtrPtr _hailo_hef"));
+        infoMap.put(new Info("hailo_configured_network_group").valueTypes("_hailo_configured_network_group").pointerTypes("@ByPtrPtr _hailo_configured_network_group"));
+        infoMap.put(new Info("hailo_activated_network_group").valueTypes("_hailo_activated_network_group").pointerTypes("@ByPtrPtr _hailo_activated_network_group"));
+        infoMap.put(new Info("hailo_device").valueTypes("_hailo_device").pointerTypes("@ByPtrPtr _hailo_device"));
+        infoMap.put(new Info("hailo_vdevice").valueTypes("_hailo_vdevice").pointerTypes("@ByPtrPtr _hailo_vdevice"));
+        infoMap.put(new Info("hailo_input_stream").valueTypes("_hailo_input_stream").pointerTypes("@ByPtrPtr _hailo_input_stream"));
+        infoMap.put(new Info("hailo_input_vstream").valueTypes("_hailo_input_vstream").pointerTypes("@ByPtrPtr _hailo_input_vstream"));
+        infoMap.put(new Info("hailo_input_transform_context").valueTypes("_hailo_input_transform_context").pointerTypes("@ByPtrPtr _hailo_input_transform_context"));
+        infoMap.put(new Info("hailo_output_stream").valueTypes("_hailo_output_stream").pointerTypes("@ByPtrPtr _hailo_output_stream"));
+        infoMap.put(new Info("hailo_output_demuxer").valueTypes("_hailo_output_demuxer").pointerTypes("@ByPtrPtr _hailo_output_demuxer"));
+        infoMap.put(new Info("hailo_output_transform_context").valueTypes("_hailo_output_transform_context").pointerTypes("@ByPtrPtr _hailo_output_transform_context"));
+        infoMap.put(new Info("hailo_output_vstream").valueTypes("_hailo_output_vstream").pointerTypes("@ByPtrPtr _hailo_output_vstream"));
+
+        // mapping EMPTY_STRUCT_PLACEHOLDER
+        infoMap.put(new Info("EMPTY_STRUCT_PLACEHOLDER").cast().valueTypes("int").pointerTypes("IntPointer"));
+        infoMap.put(new Info("hailo_demux_params_t").pointerTypes("hailo_demux_params_t"));
+        infoMap.put(new Info("hailo_pcie_input_stream_params_t").pointerTypes("hailo_pcie_input_stream_params_t"));
+        infoMap.put(new Info("hailo_pcie_output_stream_params_t").pointerTypes("hailo_pcie_output_stream_params_t"));
+        infoMap.put(new Info("hailo_integrated_input_stream_params_t").pointerTypes("hailo_integrated_input_stream_params_t"));
+        infoMap.put(new Info("hailo_integrated_output_stream_params_t").pointerTypes("hailo_integrated_output_stream_params_t"));
     }
 }
