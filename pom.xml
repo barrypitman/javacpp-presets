@@ -636,8 +636,8 @@
         <module>skia</module>
         <module>cpu_features</module>
         <module>modsecurity</module>
-        <module>systems</module>
         <module>hailort</module>
+        <module>systems</module>
       </modules>
       <properties>
         <javacpp.platform>${os.name}-${os.arch}</javacpp.platform>
@@ -1426,6 +1426,7 @@
         <module>skia</module>
         <module>cpu_features</module>
         <module>modsecurity</module>
+        <module>hailort</module>
         <module>systems</module>
       </modules>
       <properties>
@@ -1557,6 +1558,7 @@
         <module>skia</module>
         <module>cpu_features</module>
         <module>modsecurity</module>
+        <module>hailort</module>
         <module>systems</module>
       </modules>
       <properties>
