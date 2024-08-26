@@ -14,19 +14,9 @@ cd $PLATFORM
 tar -xzvf ../hailort-v$HAILORT_VERSION.tar.gz
 cd hailort-$HAILORT_VERSION
 
+sedinplace 's/EMPTY_STRUCT_PLACEHOLDER/uint8_t reserved;/g' hailort/libhailort/include/hailo/hailort.h
+
 case $PLATFORM in
-    android-arm64)
-        cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release
-        cmake --build build --config release --target libhailort
-        mkdir -p ../include ../lib
-        cp ./build/hailort/libhailort/src/libhailort.so.$HAILORT_VERSION ../lib/
-        cp hailort/libhailort/include/hailo/*.h ../include/
-        ;;
-    android-x86_64)
-        cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release
-        cmake --build build --config release --target libhailort
-        mkdir -p ../include ../lib
-        ;;
     linux-x86_64)
         cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config release --target libhailort

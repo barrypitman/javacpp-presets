@@ -11,20 +11,20 @@ import org.bytedeco.javacpp.tools.*;
                         "platform.h"
                 }),
                 @Platform(value = "windows", include = ""),
-/*                @Platform(value = "linux",
+                @Platform(value = "linux",
                         include = {
 //                        "<unistd.h>",
 //                                "<sys/time.h>",
 //                                "<sys/socket.h>",
-                                "<netinet/in.h>",
+//                                "<netinet/in.h>",
 //                                "<arpa/inet.h>"
                         },
                         includepath = {
                                  "hailort/src/test/resources/", // todo remove
-                                "/usr/include/x86_64-linux-gnu/",
-                                "/usr/include/"
+//                                "/usr/include/x86_64-linux-gnu/",
+//                                "/usr/include/"
                         }
-                ),*/
+                ),
 
         },
         target = "org.bytedeco.hailort",
@@ -44,6 +44,13 @@ public class hailort implements InfoMapper {
 //                        "typedef uint32_t in_addr_t;", "\\s+};",
 //                        "/\\* Type to represent a port.  \\*/", "/\\* Standard well-known ports.  \\*/"
 //                        ));
+
+
+        // types from platform.h
+        infoMap.put(new Info("socket_t").cast().valueTypes("int").pointerTypes("IntPointer"));
+        infoMap.put(new Info("port_t").cast().valueTypes("int").pointerTypes("IntPointer"));
+        infoMap.put(new Info("sockaddr_in").cast().javaNames("org.bytedeco.systems.linux.sockaddr").pointerTypes("Pointer"));
+        infoMap.put(new Info("INVALID_SOCKET").javaText("public static final int INVALID_SOCKET = (int)(-1);"));
 
         infoMap.put(new Info("hailort.h").linePatterns("#ifdef __cplusplus", "#endif").skip());
 
@@ -77,10 +84,10 @@ public class hailort implements InfoMapper {
 
         // mapping EMPTY_STRUCT_PLACEHOLDER
         infoMap.put(new Info("EMPTY_STRUCT_PLACEHOLDER").cast().valueTypes("int").pointerTypes("IntPointer"));
-        infoMap.put(new Info("hailo_demux_params_t").pointerTypes("hailo_demux_params_t"));
-        infoMap.put(new Info("hailo_pcie_input_stream_params_t").pointerTypes("hailo_pcie_input_stream_params_t"));
-        infoMap.put(new Info("hailo_pcie_output_stream_params_t").pointerTypes("hailo_pcie_output_stream_params_t"));
-        infoMap.put(new Info("hailo_integrated_input_stream_params_t").pointerTypes("hailo_integrated_input_stream_params_t"));
-        infoMap.put(new Info("hailo_integrated_output_stream_params_t").pointerTypes("hailo_integrated_output_stream_params_t"));
+//        infoMap.put(new Info("hailo_demux_params_t").pointerTypes("hailo_demux_params_t"));
+//        infoMap.put(new Info("hailo_pcie_input_stream_params_t").pointerTypes("hailo_pcie_input_stream_params_t"));
+//        infoMap.put(new Info("hailo_pcie_output_stream_params_t").pointerTypes("hailo_pcie_output_stream_params_t"));
+//        infoMap.put(new Info("hailo_integrated_input_stream_params_t").pointerTypes("hailo_integrated_input_stream_params_t"));
+//        infoMap.put(new Info("hailo_integrated_output_stream_params_t").pointerTypes("hailo_integrated_output_stream_params_t"));
     }
 }
