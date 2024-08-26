@@ -20,8 +20,8 @@ import org.bytedeco.javacpp.tools.*;
 //                                "<arpa/inet.h>"
                         },
                         includepath = {
-                                "/usr/include/x86_64-linux-gnu/",
-                                "/usr/include/"
+//                                "/usr/include/x86_64-linux-gnu/",
+//                                "/usr/include/"
                         }
                 ),
 
