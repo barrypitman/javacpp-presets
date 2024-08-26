@@ -11,19 +11,20 @@ import org.bytedeco.javacpp.tools.*;
                         "platform.h"
                 }),
                 @Platform(value = "windows", include = ""),
-                @Platform(value = "linux",
+/*                @Platform(value = "linux",
                         include = {
 //                        "<unistd.h>",
 //                                "<sys/time.h>",
 //                                "<sys/socket.h>",
-//                                "<netinet/in.h>",
+                                "<netinet/in.h>",
 //                                "<arpa/inet.h>"
                         },
                         includepath = {
-//                                "/usr/include/x86_64-linux-gnu/",
-//                                "/usr/include/"
+                                 "hailort/src/test/resources/", // todo remove
+                                "/usr/include/x86_64-linux-gnu/",
+                                "/usr/include/"
                         }
-                ),
+                ),*/
 
         },
         target = "org.bytedeco.hailort",
