@@ -10,6 +10,21 @@ import org.bytedeco.javacpp.tools.*;
                         "hailort.h",
                         "platform.h"
                 }),
+                @Platform(value = "windows", include = ""),
+                @Platform(value = "linux",
+                        include = {
+//                        "<unistd.h>",
+//                                "<sys/time.h>",
+//                                "<sys/socket.h>",
+//                                "<netinet/in.h>",
+//                                "<arpa/inet.h>"
+                        },
+                        includepath = {
+                                "/usr/include/x86_64-linux-gnu/",
+                                "/usr/include/"
+                        }
+                ),
+
         },
         target = "org.bytedeco.hailort",
         global = "org.bytedeco.hailort.global.hailort",
@@ -23,6 +38,12 @@ public class hailort implements InfoMapper {
 
     @Override
     public void map(InfoMap infoMap) {
+//        infoMap.put(new Info("in.h")
+//                .linePatterns("struct sockaddr_in", "\\s+};",
+//                        "typedef uint32_t in_addr_t;", "\\s+};",
+//                        "/\\* Type to represent a port.  \\*/", "/\\* Standard well-known ports.  \\*/"
+//                        ));
+
         infoMap.put(new Info("hailort.h").linePatterns("#ifdef __cplusplus", "#endif").skip());
 
         // these variables are defined in HailoHelper
