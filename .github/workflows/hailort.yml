@@ -9,6 +9,7 @@ on:
       - hailort/**
       - .github/workflows/hailort.yml
   workflow_dispatch:
+
 env:
   CI_DEPLOY_MODULE: ${{ github.workflow }}
   CI_DEPLOY_PLATFORM: ${{ github.job }}
