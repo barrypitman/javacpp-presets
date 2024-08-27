@@ -35,7 +35,8 @@ case $PLATFORM in
         cmake -S. -Bbuild -DCMAKE_BUILD_TYPE=Release
         cmake --build build --config release --target libhailort
         mkdir -p ../include ../lib
-
+        cp ./build/hailort/libhailort/src/Release/libhailort.dll ../lib/
+        cp hailort/libhailort/include/hailo/*.h ../include/
         ;;
     *)
         echo "Error: Platform \"$PLATFORM\" is not supported"
