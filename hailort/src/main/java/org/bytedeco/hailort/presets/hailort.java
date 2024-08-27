@@ -10,7 +10,7 @@ import org.bytedeco.javacpp.tools.*;
                         "hailort.h",
                         "platform.h"
                 }),
-                @Platform(value = "windows", include = ""),
+                @Platform(value = "windows", include = {}),
                 @Platform(value = "linux",
                         include = {
 //                        "<unistd.h>",
