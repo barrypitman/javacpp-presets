@@ -1208,6 +1208,7 @@
         <module>tensorrt</module>
         <module>depthai</module>
         <module>onnxruntime</module>
+        <module>hailort</module>
         <module>cpu_features</module>
         <module>systems</module>
       </modules>
@@ -1558,7 +1559,6 @@
         <module>skia</module>
         <module>cpu_features</module>
         <module>modsecurity</module>
-        <module>hailort</module>
         <module>systems</module>
       </modules>
       <properties>
@@ -1709,6 +1709,7 @@
         <module>bullet</module>
         <module>liquidfun</module>
         <module>qt</module>
+        <module>hailort</module>
         <module>cpu_features</module>
         <module>systems</module>
       </modules>
