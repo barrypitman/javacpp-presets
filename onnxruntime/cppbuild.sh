@@ -23,6 +23,11 @@ if [[ "$EXTENSION" == *gpu ]]; then
     GPU_FLAGS="--use_cuda"
 fi
 
+export DML_FLAGS=
+if [[ "$EXTENSION" == *dml ]]; then
+    DML_FLAGS="--use_dml"
+fi
+
 ONNXRUNTIME=1.18.1
 
 mkdir -p "$PLATFORM$EXTENSION"
@@ -56,7 +61,6 @@ case $PLATFORM in
         export CC="cl.exe"
         export CXX="cl.exe"
         export ARCH_FLAGS=
-        export DML_FLAGS="--use_dml"
         export PYTHON_BIN_PATH=$(which python.exe)
         ;;
 esac

@@ -62,7 +62,7 @@ import org.bytedeco.dnnl.presets.*;
 //                "onnxruntime/core/providers/armnn/armnn_provider_factory.h",
 //                "onnxruntime/core/providers/coreml/coreml_provider_factory.h",
 //                "onnxruntime/core/providers/rocm/rocm_provider_factory.h",
-//                "onnxruntime/core/providers/dml/dml_provider_factory.h",
+                "onnxruntime/core/providers/dml/dml_provider_factory.h",
             },
             link = {"onnxruntime_providers_shared", "onnxruntime@.1.18.1"}
         ),
@@ -75,6 +75,11 @@ import org.bytedeco.dnnl.presets.*;
             extension = "-gpu",
             link = {"onnxruntime_providers_shared", "onnxruntime@.1.18.1", "onnxruntime_providers_dnnl", "onnxruntime_providers_cuda"}
         ),
+            @Platform(
+                    value = {"windows-x86_64"},
+                    extension = "-dml",
+                    link = {"onnxruntime_providers_shared", "onnxruntime@.1.18.1", "onnxruntime_providers_dml"}
+            ),
     },
     target = "org.bytedeco.onnxruntime",
     global = "org.bytedeco.onnxruntime.global.onnxruntime"

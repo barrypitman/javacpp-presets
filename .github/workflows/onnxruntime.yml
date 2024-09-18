@@ -41,7 +41,7 @@ jobs:
     timeout-minutes: 720
     strategy:
       matrix:
-        ext: ["", -gpu]
+        ext: ["", -gpu, -dml]
     steps:
       - uses: bytedeco/javacpp-presets/.github/actions/deploy-windows@actions
   redeploy:
