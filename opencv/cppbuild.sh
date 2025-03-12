@@ -7,7 +7,7 @@ if [[ -z "$PLATFORM" ]]; then
     exit
 fi
 
-OPENCV_VERSION=4.10.0
+OPENCV_VERSION=4.11.0
 download https://github.com/opencv/opencv/archive/$OPENCV_VERSION.tar.gz opencv-$OPENCV_VERSION.tar.gz
 download https://github.com/opencv/opencv_contrib/archive/$OPENCV_VERSION.tar.gz opencv_contrib-$OPENCV_VERSION.tar.gz
 
@@ -45,13 +45,13 @@ export PYTHON3_EXECUTABLE=
 export PYTHON3_INCLUDE_DIR=
 export PYTHON3_LIBRARY=
 export PYTHON3_PACKAGES_PATH=
-if [[ -f "$CPYTHON_PATH/include/python3.12/Python.h" ]]; then
+if [[ -f "$CPYTHON_PATH/include/python3.13/Python.h" ]]; then
     export LD_LIBRARY_PATH="$OPENBLAS_PATH/lib/:$CPYTHON_PATH/lib/:$NUMPY_PATH/lib/:${LD_LIBRARY_PATH:-}"
-    export PYTHON3_EXECUTABLE="$CPYTHON_PATH/bin/python3.12"
-    export PYTHON3_INCLUDE_DIR="$CPYTHON_PATH/include/python3.12/"
-    export PYTHON3_LIBRARY="$CPYTHON_PATH/lib/python3.12/"
-    export PYTHON3_PACKAGES_PATH="$INSTALL_PATH/lib/python3.12/site-packages/"
-    export SSL_CERT_FILE="$CPYTHON_PATH/lib/python3.12/site-packages/pip/_vendor/certifi/cacert.pem"
+    export PYTHON3_EXECUTABLE="$CPYTHON_PATH/bin/python3.13"
+    export PYTHON3_INCLUDE_DIR="$CPYTHON_PATH/include/python3.13/"
+    export PYTHON3_LIBRARY="$CPYTHON_PATH/lib/python3.13/"
+    export PYTHON3_PACKAGES_PATH="$INSTALL_PATH/lib/python3.13/site-packages/"
+    export SSL_CERT_FILE="$CPYTHON_PATH/lib/python3.13/site-packages/pip/_vendor/certifi/cacert.pem"
     chmod +x "$PYTHON3_EXECUTABLE"
 elif [[ -f "$CPYTHON_PATH/include/Python.h" ]]; then
     CPYTHON_PATH=$(cygpath $CPYTHON_PATH)
@@ -60,7 +60,7 @@ elif [[ -f "$CPYTHON_PATH/include/Python.h" ]]; then
     export PATH="$OPENBLAS_PATH:$CPYTHON_PATH:$NUMPY_PATH:$PATH"
     export PYTHON3_EXECUTABLE="$CPYTHON_PATH/bin/python.exe"
     export PYTHON3_INCLUDE_DIR="$CPYTHON_PATH/include/"
-    export PYTHON3_LIBRARY="$CPYTHON_PATH/libs/python312.lib"
+    export PYTHON3_LIBRARY="$CPYTHON_PATH/libs/python313.lib"
     export PYTHON3_PACKAGES_PATH="$INSTALL_PATH/lib/site-packages/"
     export SSL_CERT_FILE="$CPYTHON_PATH/lib/pip/_vendor/certifi/cacert.pem"
 fi
@@ -116,9 +116,9 @@ sedinplace 's/PythonInterp "${min_version}"/PythonInterp/g' cmake/OpenCVDetectPy
 sedinplace 's/PythonLibs "${_version_major_minor}.${_version_patch}" EXACT/PythonLibs/g' cmake/OpenCVDetectPython.cmake
 sedinplace '/if(PYTHONINTERP_FOUND)/a\
     if(" ${_python_version_major}" STREQUAL " 3")\
-      set(PYTHON_VERSION_STRING "3.12")\
+      set(PYTHON_VERSION_STRING "3.13")\
       set(PYTHON_VERSION_MAJOR "3")\
-      set(PYTHON_VERSION_MINOR "12")\
+      set(PYTHON_VERSION_MINOR "13")\
     endif()\
 ' cmake/OpenCVDetectPython.cmake
 sedinplace '/execute_process/{N;N;N;d;}' cmake/OpenCVDetectPython.cmake
@@ -126,7 +126,7 @@ sedinplace '/execute_process/{N;N;N;d;}' cmake/OpenCVDetectPython.cmake
 BUILD_X="-DBUILD_ANDROID_EXAMPLES=OFF -DBUILD_ANDROID_PROJECTS=OFF -DBUILD_TESTS=OFF -DBUILD_PERF_TESTS=OFF -DBUILD_JASPER=ON -DBUILD_JPEG=ON -DBUILD_WEBP=ON -DBUILD_OPENEXR=ON -DBUILD_PNG=ON -DBUILD_TIFF=ON -DBUILD_ZLIB=ON -DBUILD_opencv_java=ON -DBUILD_opencv_objc=OFF -DBUILD_opencv_python2=OFF -DBUILD_opencv_python3=ON -DOPENCV_SKIP_PYTHON_LOADER=ON -DPYTHON3_EXECUTABLE=$PYTHON3_EXECUTABLE -DPYTHON3_INCLUDE_DIR=$PYTHON3_INCLUDE_DIR -DPYTHON3_LIBRARY=$PYTHON3_LIBRARY -DPYTHON3_PACKAGES_PATH=$PYTHON3_PACKAGES_PATH -DPYTHON3_NUMPY_INCLUDE_DIRS=$NUMPY_PATH/python/numpy/_core/include/ -DBUILD_opencv_gapi=OFF -DBUILD_opencv_hdf=OFF -DBUILD_opencv_sfm=OFF -DBUILD_opencv_img_hash=ON"
 
 # support for OpenMP is NOT thread-safe so make sure to never enable it and use pthreads instead
-WITH_X="-DWITH_1394=OFF -DWITH_FFMPEG=OFF -DWITH_GSTREAMER=OFF -DWITH_IPP=OFF -DWITH_LAPACK=ON -DWITH_OPENCL=ON -DWITH_OPENJPEG=OFF -DWITH_OPENMP=OFF -DOPENCV_ENABLE_NONFREE=ON -DWITH_VA=OFF -DWITH_INF_ENGINE=OFF -DWITH_EIGEN=OFF -DENABLE_CXX11=ON -DENABLE_LIBJPEG_TURBO_SIMD=OFF"
+WITH_X="-DWITH_1394=OFF -DWITH_FFMPEG=OFF -DWITH_GSTREAMER=OFF -DWITH_IPP=OFF -DWITH_LAPACK=ON -DWITH_OPENCL=ON -DWITH_OPENJPEG=OFF -DWITH_OPENMP=OFF -DOPENCV_ENABLE_NONFREE=ON -DWITH_VA=OFF -DWITH_INF_ENGINE=OFF -DWITH_EIGEN=OFF -DWITH_KLEIDICV=OFF -DENABLE_CXX11=ON -DENABLE_LIBJPEG_TURBO_SIMD=OFF"
 
 # support headless
 if [[ "${HEADLESS:-no}" == "yes" ]]; then
@@ -137,7 +137,7 @@ BUILD_CONTRIB_X="-DBUILD_opencv_stereo=OFF -DBUILD_opencv_plot=ON -DBUILD_opencv
 
 GPU_FLAGS="-DWITH_CUDA=OFF"
 if [[ "$EXTENSION" == *gpu ]]; then
-    GPU_FLAGS="-DWITH_CUDA=ON -DWITH_CUDNN=ON -DOPENCV_DNN_CUDA=ON -DCUDA_VERSION=12.6 -DCUDNN_VERSION=9.3 -DCUDA_ARCH_BIN='5.0;6.0;7.0;8.0;9.0' -DCUDA_ARCH_PTX='' -DCUDA_NVCC_FLAGS=--expt-relaxed-constexpr -DCUDA_nppicom_LIBRARY="
+    GPU_FLAGS="-DWITH_CUDA=ON -DWITH_CUDNN=ON -DOPENCV_DNN_CUDA=ON -DCUDA_VERSION=12.6 -DCUDNN_VERSION=9.5 -DCUDA_ARCH_BIN='5.0;6.0;7.0;8.0;9.0' -DCUDA_ARCH_PTX='' -DCUDA_NVCC_FLAGS=--expt-relaxed-constexpr -DCUDA_nppicom_LIBRARY="
 fi
 
 # exclude openblas dependencies

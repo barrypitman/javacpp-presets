@@ -1,4 +1,13 @@
 
+ * Add `openblas_full` class giving access to all of OpenBLAS ([pull #1572](https://github.com/bytedeco/javacpp-presets/pull/1572))
+ * Allow setting "org.bytedeco.openblas.load" system property to "none" ([issue #1203](https://github.com/bytedeco/javacpp-presets/issues/1203))
+ * Fix presets for the CUPTI module of CUDA on Windows ([pull #1576](https://github.com/bytedeco/javacpp-presets/pull/1576))
+ * Introduce `macosx-arm64` builds for ARPACK-NG, CMINPACK, FFTW, GSL, TensorFlow Lite, ONNX, ONNX Runtime ([issue #1069](https://github.com/bytedeco/javacpp-presets/issues/1069))
+ * Upgrade presets for OpenCV 4.11.0, DNNL 3.6.2, CPython 3.13.1, NumPy 2.2.1, SciPy 1.15.1, LLVM 19.1.6, PyTorch 2.6.0, ONNX Runtime 1.20.1
+
+### November 16, 2024 version 1.5.11
+ * Enable distributed package using Gloo in presets for PyTorch ([pull #1510](https://github.com/bytedeco/javacpp-presets/pull/1510))
+ * Add presets for the CUPTI module of CUDA ([pull #1531](https://github.com/bytedeco/javacpp-presets/pull/1531))
  * Add new `ClangMemoryMgmtExample` in samples for LLVM ([pull #1522](https://github.com/bytedeco/javacpp-presets/pull/1522))
  * Enable `opencv_python3` module for `macosx-arm64` as well ([pull #1517](https://github.com/bytedeco/javacpp-presets/pull/1517))
  * Introduce `macosx-arm64` builds for CPython ([pull #1511](https://github.com/bytedeco/javacpp-presets/pull/1511)), NumPy ([pull #1515](https://github.com/bytedeco/javacpp-presets/pull/1515)), SciPy ([pull #1516](https://github.com/bytedeco/javacpp-presets/pull/1516))
@@ -7,7 +16,7 @@
  * Build FFmpeg with zimg to enable zscale filter ([pull #1481](https://github.com/bytedeco/javacpp-presets/pull/1481))
  * Enable PulseAudio support for FFmpeg on Linux ([pull #1472](https://github.com/bytedeco/javacpp-presets/pull/1472))
  * Virtualize `btCollisionWorld`, `btOverlapFilterCallback`, `btOverlapCallback` from Bullet Physics SDK ([pull #1475](https://github.com/bytedeco/javacpp-presets/pull/1475))
- * Upgrade presets for OpenCV 4.10.0, FFmpeg 7.0.2, Spinnaker 4.0.0.116 ([pull #1524](https://github.com/bytedeco/javacpp-presets/pull/1524)), DNNL 3.5.3, OpenBLAS 0.3.28, CMINPACK 1.3.9, GSL 2.8, CPython 3.12.5, NumPy 2.0.1, SciPy 1.14.0, LLVM 18.1.8, LibRaw 0.21.2 ([pull #1520](https://github.com/bytedeco/javacpp-presets/pull/1520)), Tesseract 5.4.1, libffi 3.4.6, CUDA 12.6.0, cuDNN 9.3.0, NCCL 2.22.3, nvCOMP 4.0.0, OpenCL 3.0.16, NVIDIA Video Codec SDK 12.2.72, PyTorch 2.3.0 ([pull #1466](https://github.com/bytedeco/javacpp-presets/pull/1466)), SentencePiece 0.2.0, TensorFlow Lite 2.17.0, TensorRT 10.3.0.26, Triton Inference Server 2.48.0, ONNX 1.16.2, ONNX Runtime 1.18.1, TVM 0.17.0, and their dependencies
+ * Upgrade presets for OpenCV 4.10.0, FFmpeg 7.1, Spinnaker 4.0.0.116 ([pull #1524](https://github.com/bytedeco/javacpp-presets/pull/1524)), MKL 2025.0, DNNL 3.6.1, OpenBLAS 0.3.28, CMINPACK 1.3.11, GSL 2.8, CPython 3.13.0, NumPy 2.1.3, SciPy 1.14.1, LLVM 19.1.3, LibRaw 0.21.2 ([pull #1520](https://github.com/bytedeco/javacpp-presets/pull/1520)), Leptonica 1.85.0, Tesseract 5.5.0, libffi 3.4.6, CUDA 12.6.2, cuDNN 9.5.1, NCCL 2.23.4, nvCOMP 4.1.0.6, OpenCL 3.0.17, NVIDIA Video Codec SDK 12.2.72, PyTorch 2.5.1 ([pull #1466](https://github.com/bytedeco/javacpp-presets/pull/1466)), SentencePiece 0.2.0, TensorFlow Lite 2.18.0, TensorRT 10.6.0.26, Triton Inference Server 2.51.0, ONNX 1.17.0, ONNX Runtime 1.20.0, TVM 0.18.0, and their dependencies
 
 ### January 29, 2024 version 1.5.10
  * Introduce `macosx-arm64` builds for PyTorch ([pull #1463](https://github.com/bytedeco/javacpp-presets/pull/1463))

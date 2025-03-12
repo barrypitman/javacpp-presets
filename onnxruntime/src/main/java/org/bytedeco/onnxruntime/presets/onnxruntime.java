@@ -64,16 +64,17 @@ import org.bytedeco.dnnl.presets.*;
 //                "onnxruntime/core/providers/rocm/rocm_provider_factory.h",
 //                "onnxruntime/core/providers/dml/dml_provider_factory.h",
             },
-            link = {"onnxruntime_providers_shared", "onnxruntime@.1.18.1"}
+            exclude = {"CL/opencl.h", "CL/cl_version.h", "CL/cl_platform.h", "CL/cl.h"/*, "CL/cl_gl.h", "CL/cl_gl_ext.h", "CL/cl_ext.h"*/},
+            link = {"onnxruntime_providers_shared", "onnxruntime@.1"}
         ),
         @Platform(
             value = {"linux-x86_64", "macosx-x86_64", "windows-x86_64"},
-            link = {"onnxruntime_providers_shared", "onnxruntime@.1.18.1", "onnxruntime_providers_dnnl"}
+            link = {"onnxruntime_providers_shared", "onnxruntime@.1", "onnxruntime_providers_dnnl"}
         ),
         @Platform(
             value = {"linux-x86_64", "macosx-x86_64", "windows-x86_64"},
             extension = "-gpu",
-            link = {"onnxruntime_providers_shared", "onnxruntime@.1.18.1", "onnxruntime_providers_dnnl", "onnxruntime_providers_cuda"}
+            link = {"onnxruntime_providers_shared", "onnxruntime@.1", "onnxruntime_providers_dnnl", "onnxruntime_providers_cuda"}
         ),
     },
     target = "org.bytedeco.onnxruntime",
@@ -117,7 +118,8 @@ public class onnxruntime implements LoadEnabled, InfoMapper {
     }
 
     public void map(InfoMap infoMap) {
-        infoMap.put(new Info("ORTCHAR_T", "std::basic_string<ORTCHAR_T>",
+        infoMap.putFirst(new Info("opencl.h", "cl_version.h", "cl_platform.h", "cl.h"/*, "cl_gl.h", "cl_gl_ext.h", "cl_ext.h"*/).skip())
+               .put(new Info("ORTCHAR_T", "std::basic_string<ORTCHAR_T>",
                              "onnxruntime_float16::BFloat16Impl<BFloat16_t>",
                              "onnxruntime_float16::Float16Impl<Float16_t>").cppText("").cppTypes().cast().pointerTypes("Pointer"))
                .put(new Info("ORT_EXPORT", "ORT_API_CALL", "ORT_FILE", "NO_EXCEPTION", "ORT_ALL_ARGS_NONNULL", "OrtCustomOpApi").cppTypes().annotations())
@@ -223,6 +225,7 @@ public class onnxruntime implements LoadEnabled, InfoMapper {
                .put(new Info("Ort::detail::KernelInfoImpl<OrtKernelInfo>").pointerTypes("KernelInfoImpl"))
                .put(new Info("Ort::detail::Base<OrtKernelInfo>").pointerTypes("BaseKernelInfo"))
                .put(new Info("Ort::detail::Base<OrtThreadingOptions>").pointerTypes("BaseThreadingOptions"))
+               .put(new Info("Ort::detail::Base<OrtLoraAdapter>").pointerTypes("BaseOrtLoraAdapter"))
 
                .put(new Info("OrtSessionOptionsAppendExecutionProvider_MIGraphX", "OrtSessionOptionsAppendExecutionProvider_Tensorrt",
                              "OrtSessionOptionsAppendExecutionProvider_ROCM", "Ort::detail::OptionalTypeInfoImpl<OrtTypeInfo>::GetOptionalElementType").skip())
