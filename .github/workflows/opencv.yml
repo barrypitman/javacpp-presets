@@ -49,6 +49,7 @@ jobs:
   linux-arm64:
     runs-on: azure-ubuntu-20.04
     steps:
+      - uses: actions/checkout
       - uses: barrypitman/javacpp-presets/.github/actions/deploy-ubuntu@actions
 #  linux-ppc64le:
 #    runs-on: azure-ubuntu-20.04
