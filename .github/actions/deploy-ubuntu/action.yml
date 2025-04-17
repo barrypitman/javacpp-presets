@@ -76,6 +76,7 @@ runs:
 
         if [[ ! "$ARCH" == "amd64" ]]; then
           # https://github.com/actions/runner-images/issues/675
+          $SUDO apt-get -y install ruby-full
           $SUDO gem install apt-spy2
           $SUDO apt-spy2 check
           $SUDO apt-spy2 fix --commit
