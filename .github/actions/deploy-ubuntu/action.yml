@@ -336,6 +336,13 @@ runs:
         fi
         df -h
 
+    - name: Maven artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: opencv-jars
+        path: |
+          ~\.m2\repository\org\bytedeco\opencv-platform\4.10.0-1.5.11\**\*
+
     - name: Clean up
       shell: bash
       run: |

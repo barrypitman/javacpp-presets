@@ -307,6 +307,14 @@ runs:
         df -h
         wmic pagefile list /format:list
 
+    - name: Maven artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: opencv-jars
+        path: |
+          ${{ env.USERPROFILE }}\.m2\repository\org\bytedeco\opencv-platform\4.10.0-1.5.11\**\*
+
+
     - name: Clean up
       shell: cmd
       run: |
