@@ -310,7 +310,7 @@ runs:
     - name: Maven artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: opencv-jars
+        name: ${{ github.workflow }}-${{ github.job }}${{ matrix.ext }} JARs
         path: |
           C:\Users\runneradmin\.m2\repository\org\bytedeco\opencv-platform\4.10.0-1.5.11\*
           C:\Users\runneradmin\.m2\repository\org\bytedeco\opencv\4.10.0-1.5.11\*
