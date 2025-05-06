@@ -341,7 +341,8 @@ runs:
       with:
         name: opencv-jars
         path: |
-          ~\.m2\repository\org\bytedeco\opencv*\**\*
+          /home/runner/.m2/repository/org/bytedeco/opencv-platform/4.10.0-1.5.11/*
+          /home/runner/.m2/repository/org/bytedeco/opencv/4.10.0-1.5.11/*
 
     - name: Clean up
       shell: bash

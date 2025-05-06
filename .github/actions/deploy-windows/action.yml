@@ -312,7 +312,8 @@ runs:
       with:
         name: opencv-jars
         path: |
-          ${{ env.USERPROFILE }}\.m2\repository\org\bytedeco\opencv*\**\*
+          C:\Users\runneradmin\.m2\repository\org\bytedeco\opencv-platform\4.10.0-1.5.11\*
+          C:\Users\runneradmin\.m2\repository\org\bytedeco\opencv\4.10.0-1.5.11\*
 
 
     - name: Clean up
