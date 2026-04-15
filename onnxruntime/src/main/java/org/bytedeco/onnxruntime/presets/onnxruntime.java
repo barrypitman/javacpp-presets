@@ -71,9 +71,18 @@ import org.bytedeco.dnnl.presets.*;
             link = {"onnxruntime_providers_shared", "onnxruntime@.1", "onnxruntime_providers_dnnl"}
         ),
         @Platform(
+            value = {"linux-x86_64", "windows"},
+            link = {"onnxruntime_providers_openvino"}
+        ),
+        @Platform(
             value = {"linux", "macosx", "windows"},
             extension = "-gpu",
             link = {"onnxruntime_providers_shared", "onnxruntime@.1", "onnxruntime_providers_dnnl", "onnxruntime_providers_cuda"}
+        ),
+        @Platform(
+            value = {"linux-x86_64", "windows"},
+            extension = "-gpu",
+            link = {"onnxruntime_providers_openvino"}
         ),
     },
     target = "org.bytedeco.onnxruntime",
@@ -88,31 +97,33 @@ public class onnxruntime implements LoadEnabled, InfoMapper {
         List<String> preloads = properties.get("platform.preload");
         List<String> resources = properties.get("platform.preloadresource");
 
-        // Only apply this at load time since we don't want to copy the CUDA libraries here
-        if (!Loader.isLoadLibraries() || extension == null || !extension.equals("-gpu")) {
+        if (!Loader.isLoadLibraries() || extension == null) {
             return;
         }
         int i = 0;
-        if (platform.startsWith("windows")) {
-            preloads.add(i++, "zlibwapi");
-        }
-        String[] libs = {"cudart", "cublasLt", "cublas", "cufft", "curand", "cudnn",
-                         "cudnn_graph", "cudnn_engines_precompiled", "cudnn_engines_runtime_compiled",
-                         "cudnn_heuristic", "cudnn_ops", "cudnn_adv", "cudnn_cnn"};
-        for (String lib : libs) {
-            if (platform.startsWith("linux")) {
-                lib += lib.startsWith("cudnn") ? "@.9" : lib.equals("cufft") ? "@.12" : lib.equals("curand") ? "@.10" : lib.equals("cudart") ? "@.13" : "@.13";
-            } else if (platform.startsWith("windows")) {
-                lib += lib.startsWith("cudnn") ? "64_9" : lib.equals("cufft") ? "64_12" : lib.equals("curand") ? "64_10" : lib.equals("cudart") ? "64_13" : "64_13";
-            } else {
-                continue; // no CUDA
+        if (extension.equals("-gpu")) {
+            // Only apply this at load time since we don't want to copy the CUDA libraries here
+            if (platform.startsWith("windows")) {
+                preloads.add(i++, "zlibwapi");
             }
-            if (!preloads.contains(lib)) {
-                preloads.add(i++, lib);
+            String[] libs = {"cudart", "cublasLt", "cublas", "cufft", "curand", "cudnn",
+                             "cudnn_graph", "cudnn_engines_precompiled", "cudnn_engines_runtime_compiled",
+                             "cudnn_heuristic", "cudnn_ops", "cudnn_adv", "cudnn_cnn"};
+            for (String lib : libs) {
+                if (platform.startsWith("linux")) {
+                    lib += lib.startsWith("cudnn") ? "@.9" : lib.equals("cufft") ? "@.12" : lib.equals("curand") ? "@.10" : lib.equals("cudart") ? "@.13" : "@.13";
+                } else if (platform.startsWith("windows")) {
+                    lib += lib.startsWith("cudnn") ? "64_9" : lib.equals("cufft") ? "64_12" : lib.equals("curand") ? "64_10" : lib.equals("cudart") ? "64_13" : "64_13";
+                } else {
+                    continue; // no CUDA
+                }
+                if (!preloads.contains(lib)) {
+                    preloads.add(i++, lib);
+                }
             }
-        }
-        if (i > 0) {
-            resources.add("/org/bytedeco/cuda/");
+            if (i > 0) {
+                resources.add("/org/bytedeco/cuda/");
+            }
         }
     }
 

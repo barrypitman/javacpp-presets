@@ -25,6 +25,10 @@ if [[ "$EXTENSION" == *gpu ]]; then
     GPU_FLAGS="--use_cuda"
 fi
 
+export OPENVINO_FLAGS=
+OPENVINO_VERSION=2025.4.1
+OPENVINO_BUILD=20426.82bbf0292c5
+
 ONNXRUNTIME=1.24.1
 
 mkdir -p "$PLATFORM$EXTENSION"
@@ -48,6 +52,21 @@ case $PLATFORM in
         export ARCH_FLAGS="$ARCH_FLAGS --arm64"
         export CMAKE_ARGS="-DCMAKE_SYSTEM_NAME=Linux -DCMAKE_SYSTEM_PROCESSOR=AARCH64"
         ;;
+    linux-x86_64)
+        OPENVINO_ARCHIVE="openvino_toolkit_ubuntu22_${OPENVINO_VERSION}.${OPENVINO_BUILD}_x86_64.tgz"
+        OPENVINO_DIRECTORY="${OPENVINO_ARCHIVE%.tgz}"
+        export OPENVINO_FLAGS="--use_openvino CPU"
+        download https://storage.openvinotoolkit.org/repositories/openvino/packages/$OPENVINO_VERSION/linux/$OPENVINO_ARCHIVE $OPENVINO_ARCHIVE
+        if [[ ! -d "$OPENVINO_DIRECTORY" ]]; then
+            tar -xzf $OPENVINO_ARCHIVE
+        fi
+        export INTEL_OPENVINO_DIR="$(pwd)/$OPENVINO_DIRECTORY"
+        export OpenVINO_DIR="$INTEL_OPENVINO_DIR/runtime/cmake"
+        export TBB_DIR="$INTEL_OPENVINO_DIR/runtime/3rdparty/tbb/lib/cmake/TBB"
+        export OPENVINO_LIB_PATHS="$INTEL_OPENVINO_DIR/runtime/lib/intel64"
+        export LD_LIBRARY_PATH="$OPENVINO_LIB_PATHS:$INTEL_OPENVINO_DIR/runtime/3rdparty/tbb/lib:${LD_LIBRARY_PATH:-}"
+        export PATH="$OPENVINO_LIB_PATHS:$INTEL_OPENVINO_DIR/runtime/3rdparty/tbb/bin:$PATH"
+        ;;
     macosx-arm64)
         export ARCH_FLAGS=
         export COREML_FLAGS="--use_coreml"
@@ -57,6 +76,18 @@ case $PLATFORM in
         export COREML_FLAGS="--use_coreml"
         ;;
     windows-*)
+        OPENVINO_ARCHIVE="openvino_toolkit_windows_${OPENVINO_VERSION}.${OPENVINO_BUILD}_x86_64.zip"
+        OPENVINO_DIRECTORY="${OPENVINO_ARCHIVE%.zip}"
+        export OPENVINO_FLAGS="--use_openvino CPU"
+        download https://storage.openvinotoolkit.org/repositories/openvino/packages/$OPENVINO_VERSION/windows/$OPENVINO_ARCHIVE $OPENVINO_ARCHIVE
+        if [[ ! -d "$OPENVINO_DIRECTORY" ]]; then
+            unzip -q -o $OPENVINO_ARCHIVE
+        fi
+        export INTEL_OPENVINO_DIR="$(pwd)/$OPENVINO_DIRECTORY"
+        export OpenVINO_DIR="$INTEL_OPENVINO_DIR/runtime/cmake"
+        export TBB_DIR="$INTEL_OPENVINO_DIR/runtime/3rdparty/tbb/lib/cmake/TBB"
+        export OPENVINO_LIB_PATHS="$INTEL_OPENVINO_DIR/runtime/bin/intel64/Release"
+        export PATH="$OPENVINO_LIB_PATHS:$INTEL_OPENVINO_DIR/runtime/3rdparty/tbb/bin:$PATH"
         if [[ -n "${CUDA_PATH:-}" ]]; then
             export CUDACXX="$CUDA_PATH/bin/nvcc.exe"
             export CUDA_HOME="$CUDA_PATH"
@@ -189,7 +220,7 @@ sedinplace 's/initializers = allocarray/initializers = (const OrtValue**)allocar
 
 which ctest3 &> /dev/null && CTEST="ctest3" || CTEST="ctest"
 for i in {1..2}; do
-  "$PYTHON_BIN_PATH" tools/ci_build/build.py --build_dir ../build --config Release --parallel $MAKEJ --enable_training_apis --enable_training_ops --cmake_path "$CMAKE" --ctest_path "$CTEST" --build_shared_lib $ARCH_FLAGS $DNNL_FLAGS $COREML_FLAGS $OPENMP_FLAGS $GPU_FLAGS || sedinplace 's/5ea4d05e62d7f954a46b3213f9b2535bdd866803/51982be81bbe52572b54180454df11a3ece9a934/g' cmake/deps.txt
+  "$PYTHON_BIN_PATH" tools/ci_build/build.py --build_dir ../build --config Release --parallel $MAKEJ --enable_training_apis --enable_training_ops --cmake_path "$CMAKE" --ctest_path "$CTEST" --build_shared_lib $ARCH_FLAGS $DNNL_FLAGS $COREML_FLAGS $OPENMP_FLAGS $GPU_FLAGS $OPENVINO_FLAGS || sedinplace 's/5ea4d05e62d7f954a46b3213f9b2535bdd866803/51982be81bbe52572b54180454df11a3ece9a934/g' cmake/deps.txt
 done
 
 # install headers and libraries in standard directories
