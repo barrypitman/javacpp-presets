@@ -54,14 +54,14 @@ index 7688718..6c154f2 100644
 +
 +    /** @brief Gets one supported video format/resolution/FPS combination for the opened camera.
 +
-+    @param format one-based format index in the range [1, getFormats()]
++    @param format zero-based format index in the range [0, getFormats())
 +     */
 +    CV_WRAP virtual bool getFormatType(int format, CV_OUT String& formatType, CV_OUT int& width,
 +                                       CV_OUT int& height, CV_OUT int& fps);
 +
 +    /** @brief Sets one supported video format/resolution/FPS combination on the opened camera.
 +
-+    @param format one-based format index in the range [1, getFormats()]
++    @param format zero-based format index in the range [0, getFormats())
 +     */
 +    CV_WRAP virtual bool setFormatType(int format);
 +
@@ -517,10 +517,10 @@ index 30a86f6..299a964 100644
 +    outFps = 0;
 +
 +    std::vector<V4LFormatInfo> formats = enumerateV4LFormats(deviceHandle, type);
-+    if (format <= 0 || format > static_cast<int>(formats.size()))
++    if (format < 0 || format >= static_cast<int>(formats.size()))
 +        return false;
 +
-+    const V4LFormatInfo& info = formats[format - 1];
++    const V4LFormatInfo& info = formats[format];
 +    formatType = info.formatType;
 +    outWidth = info.width;
 +    outHeight = info.height;
@@ -531,10 +531,10 @@ index 30a86f6..299a964 100644
 +bool CvCaptureCAM_V4L::setFormatType(int format)
 +{
 +    std::vector<V4LFormatInfo> formats = enumerateV4LFormats(deviceHandle, type);
-+    if (format <= 0 || format > static_cast<int>(formats.size()))
++    if (format < 0 || format >= static_cast<int>(formats.size()))
 +        return false;
 +
-+    const V4LFormatInfo& info = formats[format - 1];
++    const V4LFormatInfo& info = formats[format];
 +    return setProperty(CAP_PROP_FOURCC, static_cast<double>(info.fourcc)) &&
 +           setProperty(CAP_PROP_FRAME_WIDTH, info.width) &&
 +           setProperty(CAP_PROP_FRAME_HEIGHT, info.height) &&
