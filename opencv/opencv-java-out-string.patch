@@ -1,0 +1,63 @@
+--- a/modules/java/generator/gen_java.py
++++ b/modules/java/generator/gen_java.py
+@@ -73,6 +73,7 @@
+     "__int64" : { "j_type" : "long", "jn_type" : "long", "jni_type" : "jlong", "suffix" : "J" },
+     "int64"   : { "j_type" : "long", "jn_type" : "long", "jni_type" : "jlong", "suffix" : "J" },
+     "double[]": { "j_type" : "double[]", "jn_type" : "double[]", "jni_type" : "jdoubleArray", "suffix" : "_3D" },
++    "String[]": { "j_type" : "String[]", "jn_type" : "String[]", "jni_type" : "jobjectArray", "suffix" : "_3Ljava_lang_String_2" },
+     'string'  : {  # std::string, see "String" in modules/core/misc/java/gen_dict.json
+         'j_type': 'String',
+         'jn_type': 'String',
+@@ -808,16 +809,23 @@
+                                 jn_args.append ( ArgInfo([ f[0], a.name + f[1], "", [], "" ]) )
+                             # For C++ code: use conventional format as is
+                             jni_args.append( ArgInfo([ f[0], a.name + normalize_field_name(f[1]), "", [], "" ]) )
+-                    if "O" in a.out and not self.isWrapped(a.ctype): # out arg, pass as double[]
+-                        jn_args.append ( ArgInfo([ "double[]", "%s_out" % a.name, "", [], "" ]) )
+-                        jni_args.append ( ArgInfo([ "double[]", "%s_out" % a.name, "", [], "" ]) )
+-                        j_prologue.append( "double[] %s_out = new double[%i];" % (a.name, len(fields)) )
+-                        c_epilogue.append(
+-                            "jdouble tmp_%(n)s[%(cnt)i] = {%(args)s}; env->SetDoubleArrayRegion(%(n)s_out, 0, %(cnt)i, tmp_%(n)s);" %
+-                            { "n" : a.name, "cnt" : len(fields), "args" : ", ".join(["(jdouble)" + a.name + f[1] for f in fields]) } )
++                    if "O" in a.out and not self.isWrapped(a.ctype):
++                        if a.ctype in ('String', 'string'):
++                            jn_args.append ( ArgInfo([ "String[]", a.name, "", [], "" ]) )
++                            jni_args.append ( ArgInfo([ "String[]", "%s_out" % a.name, "", [], "" ]) )
++                            c_epilogue.append(
++                                "if (%(n)s_out != NULL) { jstring j_%(n)s = env->NewStringUTF(%(n)s.c_str()); env->SetObjectArrayElement(%(n)s_out, 0, j_%(n)s); env->DeleteLocalRef(j_%(n)s); }" %
++                                { "n" : a.name } )
++                        else: # out arg, pass as double[]
++                            jn_args.append ( ArgInfo([ "double[]", "%s_out" % a.name, "", [], "" ]) )
++                            jni_args.append ( ArgInfo([ "double[]", "%s_out" % a.name, "", [], "" ]) )
++                            j_prologue.append( "double[] %s_out = new double[%i];" % (a.name, len(fields)) )
++                            c_epilogue.append(
++                                "jdouble tmp_%(n)s[%(cnt)i] = {%(args)s}; env->SetDoubleArrayRegion(%(n)s_out, 0, %(cnt)i, tmp_%(n)s);" %
++                                { "n" : a.name, "cnt" : len(fields), "args" : ", ".join(["(jdouble)" + a.name + f[1] for f in fields]) } )
+                         if type_dict[a.ctype]["j_type"] in ('bool', 'int', 'long', 'float', 'double'):
+                             j_epilogue.append('if(%(n)s!=null) %(n)s[0] = (%(t)s)%(n)s_out[0];' % {'n':a.name,'t':type_dict[a.ctype]["j_type"]})
+-                        else:
++                        elif a.ctype not in ('String', 'string'):
+                             set_vals = []
+                             i = 0
+                             for f in fields:
+@@ -842,6 +850,8 @@
+                 jt = type_dict[a.ctype]["j_type"]
+                 if a.out and jt in ('bool', 'int', 'long', 'float', 'double'):
+                     jt += '[]'
++                elif a.out and jt == 'String':
++                    jt += '[]'
+                 j_args.append( jt + ' ' + a.name )
+             j_signature = type_dict[fi.ctype]["j_type"] + " " + \
+                 fi.jname + "(" + ", ".join(j_args) + ")"
+@@ -1086,7 +1096,10 @@
+                         jni_name  = "(%s)%s" % (cast_to(a.ctype), jni_name)
+                 if not a.ctype: # hidden
+                     jni_name = a.defval
+-                cvargs.append( type_dict[a.ctype].get("jni_name", jni_name) % {"n" : a.name})
++                if a.out and "I" not in a.out and a.ctype in ('String', 'string'):
++                    cvargs.append(a.name)
++                else:
++                    cvargs.append( type_dict[a.ctype].get("jni_name", jni_name) % {"n" : a.name})
+                 if "v_type" not in type_dict[a.ctype]:
+                     if ("I" in a.out or not a.out or self.isWrapped(a.ctype)) and "jni_var" in type_dict[a.ctype]: # complex type
+                         c_prologue.append(type_dict[a.ctype]["jni_var"] % {"n" : a.name} + ";")
