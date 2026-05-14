@@ -78,6 +78,7 @@ patch -Np1 < ../../../opencv_contrib-cuda13.patch
 cd ../opencv-$OPENCV_VERSION
 patch -Np1 < ../../../opencv.patch
 patch -Np1 < ../../../opencv-econ-videoio.patch
+patch -Np1 < ../../../opencv-econ-videoio-dshow.patch
 #patch -Np1 < ../../../opencv-cuda13.patch
 #patch -Np1 < ../../../opencv-cudnn8.patch
 patch -Np1 < ../../../opencv-linux-ppc64le.patch
