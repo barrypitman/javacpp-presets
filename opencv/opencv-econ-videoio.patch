@@ -1,0 +1,670 @@
+diff --git a/modules/videoio/CMakeLists.txt b/modules/videoio/CMakeLists.txt
+index c8a03e7..dc122eb 100644
+--- a/modules/videoio/CMakeLists.txt
++++ b/modules/videoio/CMakeLists.txt
+@@ -287,6 +287,18 @@ endif()
+
+ ocv_target_link_libraries(${the_module} LINK_PRIVATE ${tgts})
+
++if((HAVE_V4L OR HAVE_CAMV4L2 OR HAVE_VIDEOIO) AND UNIX AND NOT APPLE)
++  find_package(PkgConfig QUIET)
++  if(PKG_CONFIG_FOUND)
++    pkg_check_modules(UDEV libudev)
++  endif()
++  if(UDEV_FOUND)
++    ocv_target_compile_definitions(${the_module} PRIVATE HAVE_LIBUDEV=1)
++    ocv_target_include_directories(${the_module} PRIVATE ${UDEV_INCLUDE_DIRS})
++    ocv_target_link_libraries(${the_module} LINK_PRIVATE ${UDEV_LIBRARIES})
++  endif()
++endif()
++
+ # copy FFmpeg dll to the output folder
+ if(WIN32 AND HAVE_FFMPEG_WRAPPER)
+   if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+diff --git a/modules/videoio/include/opencv2/videoio.hpp b/modules/videoio/include/opencv2/videoio.hpp
+index 7688718..6c154f2 100644
+--- a/modules/videoio/include/opencv2/videoio.hpp
++++ b/modules/videoio/include/opencv2/videoio.hpp
+@@ -919,6 +919,42 @@ public:
+      */
+     CV_WRAP virtual bool isOpened() const;
+
++    /** @brief Gets the number of connected camera devices.
++
++    This is currently implemented by the V4L2 backend on Linux.
++     */
++    CV_WRAP virtual bool getDevices(CV_OUT int& devices);
++
++    /** @brief Gets camera device information.
++
++    @param index zero-based device index from getDevices()
++    @param deviceName backend-reported camera name
++    @param vid USB vendor ID when available
++    @param pid USB product ID when available
++    @param devicePath backend device path, such as /dev/video0
++     */
++    CV_WRAP virtual bool getDeviceInfo(int index, CV_OUT String& deviceName, CV_OUT String& vid,
++                                       CV_OUT String& pid, CV_OUT String& devicePath);
++
++    /** @brief Gets the number of video format/resolution/FPS combinations supported by the opened camera.
++
++    This is currently implemented by the V4L2 backend on Linux.
++     */
++    CV_WRAP virtual bool getFormats(CV_OUT int& formats);
++
++    /** @brief Gets one supported video format/resolution/FPS combination for the opened camera.
++
++    @param format one-based format index in the range [1, getFormats()]
++     */
++    CV_WRAP virtual bool getFormatType(int format, CV_OUT String& formatType, CV_OUT int& width,
++                                       CV_OUT int& height, CV_OUT int& fps);
++
++    /** @brief Sets one supported video format/resolution/FPS combination on the opened camera.
++
++    @param format one-based format index in the range [1, getFormats()]
++     */
++    CV_WRAP virtual bool setFormatType(int format);
++
+     /** @brief Closes video file or capturing device.
+
+     The method is automatically called by subsequent VideoCapture::open and by VideoCapture
+@@ -1004,6 +1040,12 @@ public:
+      */
+     CV_WRAP virtual bool set(int propId, double value);
+
++    /** @brief Sets a camera property and mode.
++
++    @param mode 1 for auto mode where supported, 2 for manual mode where supported
++     */
++    CV_WRAP virtual bool set(int propId, int value, int mode);
++
+     /** @brief Returns the specified VideoCapture property
+
+     @param propId Property identifier from cv::VideoCaptureProperties (eg. cv::CAP_PROP_POS_MSEC, cv::CAP_PROP_POS_FRAMES, ...)
+@@ -1023,6 +1065,15 @@ public:
+     */
+     CV_WRAP virtual double get(int propId) const;
+
++    /** @brief Gets camera property range, current/default value, and mode information.
++
++    @param supportedMode 1 for auto only, 2 for manual only, 3 for auto and manual
++    @param currentMode 1 for auto, 2 for manual
++     */
++    CV_WRAP virtual bool get(int propId, CV_OUT int& min, CV_OUT int& max, CV_OUT int& steppingDelta,
++                             CV_OUT int& supportedMode, CV_OUT int& currentValue,
++                             CV_OUT int& currentMode, CV_OUT int& defaultValue);
++
+     /** @brief Returns used backend API name
+
+      @note Stream should be opened.
+diff --git a/modules/videoio/src/cap.cpp b/modules/videoio/src/cap.cpp
+index 97f5736..437a061 100644
+--- a/modules/videoio/src/cap.cpp
++++ b/modules/videoio/src/cap.cpp
+@@ -507,6 +507,77 @@ bool VideoCapture::isOpened() const
+     return !icap.empty() ? icap->isOpened() : false;
+ }
+
++bool VideoCapture::getDevices(int& devices)
++{
++    CV_INSTRUMENT_REGION();
++    devices = 0;
++    if (!icap.empty() && icap->getDevices(devices))
++    {
++        return true;
++    }
++#if defined HAVE_LIBV4L || defined HAVE_CAMV4L || defined HAVE_CAMV4L2 || defined HAVE_VIDEOIO
++    return get_V4L_devices(devices);
++#else
++    return false;
++#endif
++}
++
++bool VideoCapture::getDeviceInfo(int index, String& deviceName, String& vid, String& pid, String& devicePath)
++{
++    CV_INSTRUMENT_REGION();
++    deviceName.clear();
++    vid.clear();
++    pid.clear();
++    devicePath.clear();
++    if (!icap.empty() && icap->getDeviceInfo(index, deviceName, vid, pid, devicePath))
++    {
++        return true;
++    }
++#if defined HAVE_LIBV4L || defined HAVE_CAMV4L || defined HAVE_CAMV4L2 || defined HAVE_VIDEOIO
++    return get_V4L_device_info(index, deviceName, vid, pid, devicePath);
++#else
++    return false;
++#endif
++}
++
++bool VideoCapture::getFormats(int& formats)
++{
++    CV_INSTRUMENT_REGION();
++    formats = 0;
++    bool ret = !icap.empty() ? icap->getFormats(formats) : false;
++    if (!ret && throwOnFail)
++    {
++        CV_Error(Error::StsError, "");
++    }
++    return ret;
++}
++
++bool VideoCapture::getFormatType(int format, String& formatType, int& width, int& height, int& fps)
++{
++    CV_INSTRUMENT_REGION();
++    formatType.clear();
++    width = 0;
++    height = 0;
++    fps = 0;
++    bool ret = !icap.empty() ? icap->getFormatType(format, formatType, width, height, fps) : false;
++    if (!ret && throwOnFail)
++    {
++        CV_Error(Error::StsError, "");
++    }
++    return ret;
++}
++
++bool VideoCapture::setFormatType(int format)
++{
++    CV_INSTRUMENT_REGION();
++    bool ret = !icap.empty() ? icap->setFormatType(format) : false;
++    if (!ret && throwOnFail)
++    {
++        CV_Error(Error::StsError, "");
++    }
++    return ret;
++}
++
+ String VideoCapture::getBackendName() const
+ {
+     int api = 0;
+@@ -611,6 +682,17 @@ bool VideoCapture::set(int propId, double value)
+     return ret;
+ }
+
++bool VideoCapture::set(int propId, int value, int mode)
++{
++    CV_CheckNE(propId, (int)CAP_PROP_BACKEND, "Can't set read-only property");
++    bool ret = !icap.empty() ? icap->setVideoProperty(propId, value, mode) : false;
++    if (!ret && throwOnFail)
++    {
++        CV_Error_(Error::StsError, ("could not set prop %d = %d mode %d", propId, value, mode));
++    }
++    return ret;
++}
++
+ double VideoCapture::get(int propId) const
+ {
+     if (propId == CAP_PROP_BACKEND)
+@@ -629,6 +711,20 @@ double VideoCapture::get(int propId) const
+     return !icap.empty() ? icap->getProperty(propId) : 0;
+ }
+
++bool VideoCapture::get(int propId, int& min, int& max, int& steppingDelta, int& supportedMode,
++                       int& currentValue, int& currentMode, int& defaultValue)
++{
++    CV_INSTRUMENT_REGION();
++    min = max = steppingDelta = supportedMode = currentValue = currentMode = defaultValue = 0;
++    bool ret = !icap.empty() ? icap->getVideoProperty(propId, min, max, steppingDelta, supportedMode,
++                                                      currentValue, currentMode, defaultValue) : false;
++    if (!ret && throwOnFail)
++    {
++        CV_Error(Error::StsError, "");
++    }
++    return ret;
++}
++
+
+ bool VideoCapture::waitAny(const std::vector<VideoCapture>& streams,
+                            CV_OUT std::vector<int>& readyIndex, int64 timeoutNs)
+diff --git a/modules/videoio/src/cap_interface.hpp b/modules/videoio/src/cap_interface.hpp
+index ba50f6d..489dd6d 100644
+--- a/modules/videoio/src/cap_interface.hpp
++++ b/modules/videoio/src/cap_interface.hpp
+@@ -214,6 +214,13 @@ class IVideoCapture
+ {
+ public:
+     virtual ~IVideoCapture() {}
++    virtual bool getDevices(int&) { return false; }
++    virtual bool getDeviceInfo(int, String&, String&, String&, String&) { return false; }
++    virtual bool getFormats(int&) { return false; }
++    virtual bool getFormatType(int, String&, int&, int&, int&) { return false; }
++    virtual bool setFormatType(int) { return false; }
++    virtual bool getVideoProperty(int, int&, int&, int&, int&, int&, int&, int&) { return false; }
++    virtual bool setVideoProperty(int, int, int) { return false; }
+     virtual double getProperty(int) const { return 0; }
+     virtual bool setProperty(int, double) { return false; }
+     virtual bool grabFrame() = 0;
+@@ -363,6 +370,8 @@ Ptr<IVideoCapture> create_DShow_capture(int index, const VideoCaptureParameters&
+
+ Ptr<IVideoCapture> create_V4L_capture_cam(int index);
+ Ptr<IVideoCapture> create_V4L_capture_file(const std::string &filename);
++bool get_V4L_devices(int& devices);
++bool get_V4L_device_info(int index, String& deviceName, String& vid, String& pid, String& devicePath);
+
+ Ptr<IVideoCapture> create_OpenNI2_capture_cam( int index );
+ Ptr<IVideoCapture> create_OpenNI2_capture_file( const std::string &filename );
+diff --git a/modules/videoio/src/cap_v4l.cpp b/modules/videoio/src/cap_v4l.cpp
+index 30a86f6..299a964 100644
+--- a/modules/videoio/src/cap_v4l.cpp
++++ b/modules/videoio/src/cap_v4l.cpp
+@@ -222,10 +222,16 @@ make & enjoy!
+ #include <stdlib.h>
+ #include <sys/stat.h>
+ #include <sys/ioctl.h>
++#include <algorithm>
+ #include <limits>
++#include <vector>
+
+ #include <poll.h>
+
++#ifdef HAVE_LIBUDEV
++#include <libudev.h>
++#endif
++
+ #ifdef HAVE_CAMV4L2
+ #include <asm/types.h>          /* for videodev2.h */
+ #include <linux/videodev2.h>
+@@ -259,6 +265,9 @@ typedef uint32_t __u32;
+ #ifndef V4L2_CID_IRIS_ABSOLUTE
+ #define V4L2_CID_IRIS_ABSOLUTE (V4L2_CID_CAMERA_CLASS_BASE+17)
+ #endif
++#ifndef V4L2_CAP_META_CAPTURE
++#define V4L2_CAP_META_CAPTURE 0
++#endif
+
+ #ifndef v4l2_fourcc_be
+ #define v4l2_fourcc_be(a, b, c, d) (v4l2_fourcc(a, b, c, d) | (1U << 31))
+@@ -415,6 +424,13 @@ struct CvCaptureCAM_V4L CV_FINAL : public IVideoCapture
+     virtual bool setProperty(int, double) CV_OVERRIDE;
+     virtual bool grabFrame() CV_OVERRIDE;
+     virtual bool retrieveFrame(int, OutputArray) CV_OVERRIDE;
++    virtual bool getDevices(int&) CV_OVERRIDE;
++    virtual bool getDeviceInfo(int, String&, String&, String&, String&) CV_OVERRIDE;
++    virtual bool getFormats(int&) CV_OVERRIDE;
++    virtual bool getFormatType(int, String&, int&, int&, int&) CV_OVERRIDE;
++    virtual bool setFormatType(int) CV_OVERRIDE;
++    virtual bool getVideoProperty(int, int&, int&, int&, int&, int&, int&, int&) CV_OVERRIDE;
++    virtual bool setVideoProperty(int, int, int) CV_OVERRIDE;
+
+     CvCaptureCAM_V4L();
+     virtual ~CvCaptureCAM_V4L();
+@@ -878,6 +894,253 @@ bool CvCaptureCAM_V4L::v4l2_reset()
+     return initCapture();
+ }
+
++struct V4LDeviceInfo
++{
++    String deviceName;
++    String vid;
++    String pid;
++    String devicePath;
++};
++
++static bool queryV4LDeviceNode(const String& devicePath, V4LDeviceInfo& info)
++{
++    if (devicePath.empty())
++        return false;
++
++    int fd = ::open(devicePath.c_str(), O_RDWR | O_NONBLOCK, 0);
++    if (fd < 0)
++        return false;
++
++    v4l2_capability cap = v4l2_capability();
++    bool valid = false;
++    if (ioctl(fd, VIDIOC_QUERYCAP, &cap) >= 0)
++    {
++        __u32 caps = cap.device_caps ? cap.device_caps : cap.capabilities;
++        valid = (caps & (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_VIDEO_CAPTURE_MPLANE)) != 0 &&
++                (caps & V4L2_CAP_META_CAPTURE) == 0;
++    }
++    ::close(fd);
++
++    if (!valid)
++        return false;
++
++    info.devicePath = devicePath;
++    info.deviceName = (const char*)cap.card;
++    return true;
++}
++
++static std::vector<V4LDeviceInfo> getV4LDevices()
++{
++    std::vector<V4LDeviceInfo> devices;
++
++#ifdef HAVE_LIBUDEV
++    struct udev* udev_ctx = udev_new();
++    if (udev_ctx)
++    {
++        struct udev_enumerate* enumerate = udev_enumerate_new(udev_ctx);
++        if (enumerate)
++        {
++            udev_enumerate_add_match_subsystem(enumerate, "video4linux");
++            udev_enumerate_scan_devices(enumerate);
++
++            struct udev_list_entry* entries = udev_enumerate_get_list_entry(enumerate);
++            struct udev_list_entry* entry = NULL;
++            udev_list_entry_foreach(entry, entries)
++            {
++                const char* path = udev_list_entry_get_name(entry);
++                struct udev_device* dev = udev_device_new_from_syspath(udev_ctx, path);
++                if (!dev)
++                    continue;
++
++                const char* devnode = udev_device_get_devnode(dev);
++                V4LDeviceInfo info;
++                if (devnode && queryV4LDeviceNode(devnode, info))
++                {
++                    struct udev_device* parent = udev_device_get_parent_with_subsystem_devtype(dev, "usb", "usb_device");
++                    if (parent)
++                    {
++                        const char* vid = udev_device_get_sysattr_value(parent, "idVendor");
++                        const char* pid = udev_device_get_sysattr_value(parent, "idProduct");
++                        if (vid)
++                            info.vid = vid;
++                        if (pid)
++                            info.pid = pid;
++                    }
++                    devices.push_back(info);
++                }
++                udev_device_unref(dev);
++            }
++            udev_enumerate_unref(enumerate);
++        }
++        udev_unref(udev_ctx);
++    }
++#endif
++
++    if (devices.empty())
++    {
++        for (int i = 0; i < MAX_CAMERAS; ++i)
++        {
++            V4LDeviceInfo info;
++            if (queryV4LDeviceNode(cv::format("/dev/video%d", i), info))
++            {
++                devices.push_back(info);
++            }
++        }
++    }
++
++    std::sort(devices.begin(), devices.end(), [](const V4LDeviceInfo& lhs, const V4LDeviceInfo& rhs) {
++        return lhs.devicePath < rhs.devicePath;
++    });
++    return devices;
++}
++
++bool get_V4L_devices(int& devices)
++{
++    devices = static_cast<int>(getV4LDevices().size());
++    return true;
++}
++
++bool get_V4L_device_info(int index, String& deviceName, String& vid, String& pid, String& devicePath)
++{
++    deviceName.clear();
++    vid.clear();
++    pid.clear();
++    devicePath.clear();
++
++    std::vector<V4LDeviceInfo> devices = getV4LDevices();
++    if (index < 0 || index >= static_cast<int>(devices.size()))
++        return false;
++
++    const V4LDeviceInfo& info = devices[index];
++    deviceName = info.deviceName;
++    vid = info.vid;
++    pid = info.pid;
++    devicePath = info.devicePath;
++    return true;
++}
++
++bool CvCaptureCAM_V4L::getDevices(int& devices)
++{
++    return get_V4L_devices(devices);
++}
++
++bool CvCaptureCAM_V4L::getDeviceInfo(int index, String& outDeviceName, String& vid, String& pid, String& devicePath)
++{
++    return get_V4L_device_info(index, outDeviceName, vid, pid, devicePath);
++}
++
++struct V4LFormatInfo
++{
++    __u32 fourcc;
++    String formatType;
++    int width;
++    int height;
++    int fps;
++};
++
++static String fourccToString(__u32 fourcc)
++{
++    char value[5];
++    value[0] = static_cast<char>(fourcc & 0xff);
++    value[1] = static_cast<char>((fourcc >> 8) & 0xff);
++    value[2] = static_cast<char>((fourcc >> 16) & 0xff);
++    value[3] = static_cast<char>((fourcc >> 24) & 0xff);
++    value[4] = '\0';
++    return String(value);
++}
++
++static std::vector<V4LFormatInfo> enumerateV4LFormats(int deviceHandle, v4l2_buf_type type)
++{
++    std::vector<V4LFormatInfo> formats;
++    if (deviceHandle < 0)
++        return formats;
++
++    v4l2_fmtdesc fmt = v4l2_fmtdesc();
++    fmt.type = type;
++    while (ioctl(deviceHandle, VIDIOC_ENUM_FMT, &fmt) == 0)
++    {
++        v4l2_frmsizeenum frmsize = v4l2_frmsizeenum();
++        frmsize.pixel_format = fmt.pixelformat;
++        while (ioctl(deviceHandle, VIDIOC_ENUM_FRAMESIZES, &frmsize) == 0)
++        {
++            if (frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE)
++            {
++                v4l2_frmivalenum frmival = v4l2_frmivalenum();
++                frmival.pixel_format = frmsize.pixel_format;
++                frmival.width = frmsize.discrete.width;
++                frmival.height = frmsize.discrete.height;
++                bool foundInterval = false;
++                while (ioctl(deviceHandle, VIDIOC_ENUM_FRAMEINTERVALS, &frmival) == 0)
++                {
++                    if (frmival.type == V4L2_FRMIVAL_TYPE_DISCRETE && frmival.discrete.numerator != 0)
++                    {
++                        formats.push_back(V4LFormatInfo{
++                            fmt.pixelformat,
++                            fourccToString(fmt.pixelformat),
++                            static_cast<int>(frmsize.discrete.width),
++                            static_cast<int>(frmsize.discrete.height),
++                            static_cast<int>(frmival.discrete.denominator / frmival.discrete.numerator)
++                        });
++                        foundInterval = true;
++                    }
++                    ++frmival.index;
++                }
++                if (!foundInterval)
++                {
++                    formats.push_back(V4LFormatInfo{
++                        fmt.pixelformat,
++                        fourccToString(fmt.pixelformat),
++                        static_cast<int>(frmsize.discrete.width),
++                        static_cast<int>(frmsize.discrete.height),
++                        0
++                    });
++                }
++            }
++            ++frmsize.index;
++        }
++        ++fmt.index;
++    }
++    return formats;
++}
++
++bool CvCaptureCAM_V4L::getFormats(int& formats)
++{
++    formats = static_cast<int>(enumerateV4LFormats(deviceHandle, type).size());
++    return isOpened();
++}
++
++bool CvCaptureCAM_V4L::getFormatType(int format, String& formatType, int& outWidth, int& outHeight, int& outFps)
++{
++    formatType.clear();
++    outWidth = 0;
++    outHeight = 0;
++    outFps = 0;
++
++    std::vector<V4LFormatInfo> formats = enumerateV4LFormats(deviceHandle, type);
++    if (format <= 0 || format > static_cast<int>(formats.size()))
++        return false;
++
++    const V4LFormatInfo& info = formats[format - 1];
++    formatType = info.formatType;
++    outWidth = info.width;
++    outHeight = info.height;
++    outFps = info.fps;
++    return true;
++}
++
++bool CvCaptureCAM_V4L::setFormatType(int format)
++{
++    std::vector<V4LFormatInfo> formats = enumerateV4LFormats(deviceHandle, type);
++    if (format <= 0 || format > static_cast<int>(formats.size()))
++        return false;
++
++    const V4LFormatInfo& info = formats[format - 1];
++    return setProperty(CAP_PROP_FOURCC, static_cast<double>(info.fourcc)) &&
++           setProperty(CAP_PROP_FRAME_WIDTH, info.width) &&
++           setProperty(CAP_PROP_FRAME_HEIGHT, info.height) &&
++           (info.fps <= 0 || setProperty(CAP_PROP_FPS, info.fps));
++}
++
+ bool CvCaptureCAM_V4L::open(int _index)
+ {
+     cv::String name;
+@@ -1747,6 +2010,28 @@ static inline bool compatibleRange(int property_id)
+     return false;
+ }
+
++static inline int autoControlForProperty(int property_id)
++{
++    switch (property_id) {
++    case cv::CAP_PROP_WHITE_BALANCE_BLUE_U:
++    case cv::CAP_PROP_WB_TEMPERATURE:
++        return capPropertyToV4L2(cv::CAP_PROP_AUTO_WB);
++    case cv::CAP_PROP_FOCUS:
++        return capPropertyToV4L2(cv::CAP_PROP_AUTOFOCUS);
++    case cv::CAP_PROP_EXPOSURE:
++        return capPropertyToV4L2(cv::CAP_PROP_AUTO_EXPOSURE);
++    default:
++        return -1;
++    }
++}
++
++static inline bool autoControlValueMeansAuto(int property_id, int value)
++{
++    if (property_id == cv::CAP_PROP_EXPOSURE)
++        return value == V4L2_EXPOSURE_AUTO;
++    return value != 0;
++}
++
+ bool CvCaptureCAM_V4L::controlInfo(int property_id, __u32 &_v4l2id, cv::Range &range) const
+ {
+     /* initialisations */
+@@ -1869,6 +2154,57 @@ double CvCaptureCAM_V4L::getProperty(int property_id) const
+     }
+ }
+
++bool CvCaptureCAM_V4L::getVideoProperty(int property_id, int& min, int& max, int& steppingDelta,
++                                        int& supportedMode, int& currentValue, int& currentMode,
++                                        int& defaultValue)
++{
++    min = max = steppingDelta = supportedMode = currentValue = currentMode = defaultValue = 0;
++
++    int manualId = capPropertyToV4L2(property_id);
++    if (manualId == -1)
++        return false;
++
++    v4l2_queryctrl manualQuery = v4l2_queryctrl();
++    manualQuery.id = static_cast<__u32>(manualId);
++    bool manualSupported = tryIoctl(VIDIOC_QUERYCTRL, &manualQuery, false);
++
++    v4l2_control manualControl = v4l2_control();
++    manualControl.id = static_cast<__u32>(manualId);
++    manualSupported = manualSupported && tryIoctl(VIDIOC_G_CTRL, &manualControl, false);
++
++    int autoId = autoControlForProperty(property_id);
++    v4l2_control autoControl = v4l2_control();
++    bool autoSupported = false;
++    if (autoId != -1)
++    {
++        v4l2_queryctrl autoQuery = v4l2_queryctrl();
++        autoQuery.id = static_cast<__u32>(autoId);
++        autoControl.id = static_cast<__u32>(autoId);
++        autoSupported = tryIoctl(VIDIOC_QUERYCTRL, &autoQuery, false) &&
++                        tryIoctl(VIDIOC_G_CTRL, &autoControl, false);
++    }
++
++    if (!manualSupported && !autoSupported)
++        return false;
++
++    if (manualSupported)
++    {
++        min = manualQuery.minimum;
++        max = manualQuery.maximum;
++        steppingDelta = manualQuery.step;
++        defaultValue = manualQuery.default_value;
++        currentValue = manualControl.value;
++    }
++
++    supportedMode = autoSupported && manualSupported ? 3 : (autoSupported ? 1 : 2);
++    if (autoSupported)
++        currentMode = autoControlValueMeansAuto(property_id, autoControl.value) ? 1 : 2;
++    else
++        currentMode = 2;
++
++    return true;
++}
++
+ bool CvCaptureCAM_V4L::icvSetFrameSize(int _width, int _height)
+ {
+     if (_width > 0)
+@@ -1969,6 +2305,36 @@ bool CvCaptureCAM_V4L::setProperty( int property_id, double _value )
+     return false;
+ }
+
++bool CvCaptureCAM_V4L::setVideoProperty(int property_id, int value, int mode)
++{
++    if (mode == 2)
++    {
++        int autoId = autoControlForProperty(property_id);
++        if (autoId != -1)
++        {
++            int autoValue = 0;
++            if (property_id == cv::CAP_PROP_EXPOSURE)
++                autoValue = V4L2_EXPOSURE_MANUAL;
++
++            if (!icvControl(static_cast<__u32>(autoId), autoValue, true))
++                return false;
++        }
++        return setProperty(property_id, value);
++    }
++
++    if (mode == 1)
++    {
++        int autoId = autoControlForProperty(property_id);
++        if (autoId == -1)
++            return false;
++
++        int autoValue = property_id == cv::CAP_PROP_EXPOSURE ? V4L2_EXPOSURE_AUTO : 1;
++        return icvControl(static_cast<__u32>(autoId), autoValue, true);
++    }
++
++    return false;
++}
++
+ void CvCaptureCAM_V4L::releaseBuffers()
+ {
+     if (buffers[MAX_V4L_BUFFERS].memories[MEMORY_ORIG].start) {
