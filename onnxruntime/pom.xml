@@ -26,6 +26,11 @@
     </dependency>
     <dependency>
       <groupId>org.bytedeco</groupId>
+      <artifactId>openvino</artifactId>
+      <version>2026.1.0-${project.parent.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bytedeco</groupId>
       <artifactId>javacpp</artifactId>
     </dependency>
   </dependencies>
@@ -52,12 +57,18 @@
             <artifactId>dnnl-platform</artifactId>
             <version>3.11-${project.parent.version}</version>
           </dependency>
+          <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>openvino-platform</artifactId>
+            <version>2026.1.0-${project.parent.version}</version>
+          </dependency>
         </dependencies>
         <configuration>
           <encoding>UTF-8</encoding>
           <classPaths>
             <classPath>${basedir}/../opencl/target/classes/</classPath>
             <classPath>${basedir}/../dnnl/target/classes/</classPath>
+            <classPath>${basedir}/../openvino/target/classes/</classPath>
             <classPath>${project.build.outputDirectory}</classPath>
           </classPaths>
           <includePaths>
@@ -67,6 +78,7 @@
             <includePath>${basedir}/../dnnl/target/classes/org/bytedeco/dnnl/include/</includePath>
             <includePath>${basedir}/../dnnl/src/main/resources/org/bytedeco/dnnl/include/</includePath>
             <includePath>${basedir}/../dnnl/cppbuild/${javacpp.platform}/include/</includePath>
+            <includePath>${basedir}/../openvino/cppbuild/${javacpp.platform}/runtime/include/</includePath>
             <includePath>${basedir}/cppbuild/${javacpp.platform}${javacpp.platform.extension}/include/onnxruntime/core/session/</includePath>
             <includePath>${basedir}/cppbuild/${javacpp.platform}${javacpp.platform.extension}/include/onnxruntime/</includePath>
             <includePath>${basedir}/cppbuild/${javacpp.platform}${javacpp.platform.extension}/include/</includePath>
@@ -76,17 +88,26 @@
           <linkPaths>
             <linkPath>${basedir}/../opencl/cppbuild/${javacpp.platform}/lib/</linkPath>
             <linkPath>${basedir}/../dnnl/cppbuild/${javacpp.platform}/lib/</linkPath>
+            <linkPath>${basedir}/../openvino/cppbuild/${javacpp.platform}/runtime/lib/intel64/</linkPath>
+            <linkPath>${basedir}/../openvino/cppbuild/${javacpp.platform}/runtime/lib/intel64/Release/</linkPath>
+            <linkPath>${basedir}/../openvino/cppbuild/${javacpp.platform}/runtime/lib/arm64/Release/</linkPath>
             <linkPath>${basedir}/cppbuild/${javacpp.platform}${javacpp.platform.extension}/lib/</linkPath>
           </linkPaths>
           <preloadPaths>
             <preloadPath>${basedir}/../opencl/cppbuild/${javacpp.platform}/bin/</preloadPath>
             <preloadPath>${basedir}/../dnnl/cppbuild/${javacpp.platform}/bin/</preloadPath>
+            <preloadPath>${basedir}/../openvino/cppbuild/${javacpp.platform}/runtime/lib/intel64/</preloadPath>
+            <preloadPath>${basedir}/../openvino/cppbuild/${javacpp.platform}/runtime/3rdparty/tbb/lib/</preloadPath>
+            <preloadPath>${basedir}/../openvino/cppbuild/${javacpp.platform}/runtime/bin/intel64/Release/</preloadPath>
+            <preloadPath>${basedir}/../openvino/cppbuild/${javacpp.platform}/runtime/3rdparty/tbb/bin/</preloadPath>
+            <preloadPath>${basedir}/../openvino/cppbuild/${javacpp.platform}/runtime/bin/arm64/Release/</preloadPath>
             <preloadPath>${basedir}/cppbuild/${javacpp.platform}${javacpp.platform.extension}/bin/</preloadPath>
           </preloadPaths>
           <buildResources>
             <buildResource>/${javacpp.platform.library.path}/</buildResource>
             <buildResource>/org/bytedeco/opencl/${javacpp.platform}/</buildResource>
             <buildResource>/org/bytedeco/dnnl/${javacpp.platform}/</buildResource>
+            <buildResource>/org/bytedeco/openvino/${javacpp.platform}/</buildResource>
           </buildResources>
           <includeResources>
             <includeResource>/${javacpp.platform.library.path}/include/</includeResource>
@@ -94,6 +115,7 @@
             <includeResource>/org/bytedeco/opencl/${javacpp.platform}/include/</includeResource>
             <includeResource>/org/bytedeco/dnnl/include/</includeResource>
             <includeResource>/org/bytedeco/dnnl/${javacpp.platform}/include/</includeResource>
+            <includeResource>/org/bytedeco/openvino/${javacpp.platform}/runtime/include/</includeResource>
           </includeResources>
           <linkResources>
             <linkResource>/${javacpp.platform.library.path}/</linkResource>
@@ -102,6 +124,9 @@
             <linkResource>/org/bytedeco/opencl/${javacpp.platform}/lib/</linkResource>
             <linkResource>/org/bytedeco/dnnl/${javacpp.platform}/</linkResource>
             <linkResource>/org/bytedeco/dnnl/${javacpp.platform}/lib/</linkResource>
+            <linkResource>/org/bytedeco/openvino/${javacpp.platform}/runtime/lib/intel64/</linkResource>
+            <linkResource>/org/bytedeco/openvino/${javacpp.platform}/runtime/lib/intel64/Release/</linkResource>
+            <linkResource>/org/bytedeco/openvino/${javacpp.platform}/runtime/lib/arm64/Release/</linkResource>
           </linkResources>
           <compilerOptions>
             <compilerOption>${onnxruntime.path}/java/src/main/native/ai_onnxruntime_OnnxMap.cpp</compilerOption>
