@@ -42,6 +42,7 @@ import org.bytedeco.opencl.presets.OpenCL;
                 "openvino/c/openvino.h"
             },
             link = {"openvino_c@.2621#", "openvino@.2621#"},
+            preloadresource = {"runtime/lib/intel64/"},
             preload = {
                 "tbb:runtime/3rdparty/tbb/lib/libtbb.so.12",
                 "openvino:runtime/lib/intel64/libopenvino.so.2621",
