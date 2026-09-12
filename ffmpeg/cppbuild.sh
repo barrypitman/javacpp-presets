@@ -56,6 +56,11 @@ SVTAV1_VERSION=4.2.0
 ZIMG_VERSION=3.0.6
 MPP_VERSION=1.1.0
 FFMPEG_VERSION=8.1.2
+# Keep the shared Ubuntu 22.04 build image while giving FFmpeg the newer
+# stateless codec UAPI required to compile V4L2 Request HEVC support.
+LINUX_UAPI_VERSION=6.8.0-31.31
+LINUX_UAPI_PACKAGE=linux-libc-dev_${LINUX_UAPI_VERSION}_arm64.deb
+LINUX_UAPI_SHA256=7fd438efa44a794b438e7dde7ac280166fb8d4b1cf7846393ce019714d8bb3e3
 
 # Vendored snapshot of https://code.ffmpeg.org/FFmpeg/FFmpeg/pulls/20847.patch
 # with the unsupported FFmpeg 8.1 Changelog hunk already removed.
@@ -85,10 +90,20 @@ download https://gitlab.com/AOMediaCodec/SVT-AV1/-/archive/v$SVTAV1_VERSION/SVT-
 download https://github.com/sekrit-twc/zimg/archive/refs/tags/release-$ZIMG_VERSION.tar.gz zimg-release-$ZIMG_VERSION.tar.gz
 download https://github.com/rockchip-linux/mpp/archive/refs/tags/$MPP_VERSION.tar.gz mpp-$MPP_VERSION.tar.gz
 download https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2 ffmpeg-$FFMPEG_VERSION.tar.bz2
+if [[ "$PLATFORM" == linux-arm64 ]]; then
+    download https://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/$LINUX_UAPI_PACKAGE $LINUX_UAPI_PACKAGE
+    echo "$LINUX_UAPI_SHA256  $LINUX_UAPI_PACKAGE" | sha256sum -c -
+fi
 
 mkdir -p $PLATFORM$EXTENSION
 cd $PLATFORM$EXTENSION
 INSTALL_PATH=`pwd`
+if [[ "$PLATFORM" == linux-arm64 ]]; then
+    LINUX_UAPI_PATH=$INSTALL_PATH/linux-uapi-$LINUX_UAPI_VERSION
+    mkdir -p "$LINUX_UAPI_PATH"
+    dpkg-deb -x ../$LINUX_UAPI_PACKAGE "$LINUX_UAPI_PATH"
+    LINUX_UAPI_CFLAGS="-isystem $LINUX_UAPI_PATH/usr/include/aarch64-linux-gnu -isystem $LINUX_UAPI_PATH/usr/include"
+fi
 case $PLATFORM in
     linux-arm64 | linux-x86_64 | macosx-arm64 | macosx-x86_64 | windows-x86_64)
         OPENCL_PATH="${BUILD_PATH:-$TOP_PATH/opencl/cppbuild/$PLATFORM}"
@@ -1609,7 +1624,8 @@ EOF
         if [[ ! -d $USERLAND_PATH ]]; then
           USERLAND_PATH="$(which aarch64-linux-gnu-gcc | grep -o '.*/tools/')../userland"
         fi
-        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $EXTRA_CONFIG $ENABLE_VULKAN --enable-rkmpp --enable-libdrm --enable-libudev --enable-v4l2-request --enable-cuda --enable-cuvid --enable-nvenc --enable-omx `#--enable-mmal` --enable-omx-rpi --enable-pthreads --enable-libxcb --enable-libpulse --cc="aarch64-linux-gnu-gcc" --cxx="aarch64-linux-gnu-g++" --extra-cflags="$CFLAGS -I$USERLAND_PATH/ -I$USERLAND_PATH/interface/vmcs_host/khronos/IL/ -I$USERLAND_PATH/host_applications/linux/libs/bcm_host/include/ -I../include/ -I../include/libxml2 -I../include/mfx/ -I../include/svt-av1 $EXTRA_CFLAGS -fno-aggressive-loop-optimizations" --extra-ldflags="-Wl,-z,relro -L$USERLAND_PATH/build/lib/ -L../lib/ $EXTRA_LDFLAGS" --extra-libs="-lstdc++ -lasound -lvchiq_arm `#-lvcsm` -lvcos -lpthread -ldl -lz -lm $EXTRA_LIBS" --enable-cross-compile --arch=arm64 --target-os=linux --cross-prefix="aarch64-linux-gnu-" || cat ffbuild/config.log
+        LDEXEFLAGS='-Wl,-rpath,\$$ORIGIN/' PKG_CONFIG_PATH=../lib/pkgconfig/ ./configure --prefix=.. $DISABLE $ENABLE $EXTRA_CONFIG $ENABLE_VULKAN --enable-rkmpp --enable-libdrm --enable-libudev --enable-v4l2-request --enable-cuda --enable-cuvid --enable-nvenc --enable-omx `#--enable-mmal` --enable-omx-rpi --enable-pthreads --enable-libxcb --enable-libpulse --cc="aarch64-linux-gnu-gcc" --cxx="aarch64-linux-gnu-g++" --extra-cflags="$CFLAGS $LINUX_UAPI_CFLAGS -I$USERLAND_PATH/ -I$USERLAND_PATH/interface/vmcs_host/khronos/IL/ -I$USERLAND_PATH/host_applications/linux/libs/bcm_host/include/ -I../include/ -I../include/libxml2 -I../include/mfx/ -I../include/svt-av1 $EXTRA_CFLAGS -fno-aggressive-loop-optimizations" --extra-ldflags="-Wl,-z,relro -L$USERLAND_PATH/build/lib/ -L../lib/ $EXTRA_LDFLAGS" --extra-libs="-lstdc++ -lasound -lvchiq_arm `#-lvcsm` -lvcos -lpthread -ldl -lz -lm $EXTRA_LIBS" --enable-cross-compile --arch=arm64 --target-os=linux --cross-prefix="aarch64-linux-gnu-" || cat ffbuild/config.log
+        grep -q '^CONFIG_HEVC_V4L2REQUEST_HWACCEL=yes$' ffbuild/config.mak || { echo "ERROR: FFmpeg HEVC V4L2 Request hwaccel was not enabled" >&2; exit 1; }
         make -j $MAKEJ
         make install
         ;;
