@@ -167,7 +167,7 @@ new file mode 100644
 index 0000000000..3d92b63367
 --- /dev/null
 +++ b/libavutil/hwcontext_v4l2request.c
-@@ -0,0 +1,617 @@
+@@ -0,0 +1,693 @@
 +/*
 + * This file is part of FFmpeg.
 + *
@@ -193,6 +193,7 @@ index 0000000000..3d92b63367
 +#include <linux/media.h>
 +#include <sys/ioctl.h>
 +#include <sys/mman.h>
++#include <string.h>
 +#include <unistd.h>
 +
 +#include <drm_fourcc.h>
@@ -221,28 +222,30 @@ index 0000000000..3d92b63367
 +static const struct {
 +    uint32_t pixelformat;
 +    enum AVPixelFormat sw_format;
++    /* Linear software format produced by transfer_data_from, if supported. */
++    enum AVPixelFormat transfer_format;
 +    uint32_t drm_format;
 +    uint64_t format_modifier;
 +    uint32_t bit_depth;
 +} v4l2request_capture_pixelformats[] = {
-+    { V4L2_PIX_FMT_NV12, AV_PIX_FMT_NV12, DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, 8 },
++    { V4L2_PIX_FMT_NV12, AV_PIX_FMT_NV12, AV_PIX_FMT_NV12, DRM_FORMAT_NV12, DRM_FORMAT_MOD_LINEAR, 8 },
 +#if defined(V4L2_PIX_FMT_NV12_32L32)
-+    { V4L2_PIX_FMT_NV12_32L32, AV_PIX_FMT_YUV420P, DRM_FORMAT_NV12, DRM_FORMAT_MOD_ALLWINNER_TILED, 8 },
++    { V4L2_PIX_FMT_NV12_32L32, AV_PIX_FMT_YUV420P, AV_PIX_FMT_NONE, DRM_FORMAT_NV12, DRM_FORMAT_MOD_ALLWINNER_TILED, 8 },
 +#endif
 +#if defined(V4L2_PIX_FMT_NV15) && defined(DRM_FORMAT_NV15)
-+    { V4L2_PIX_FMT_NV15, AV_PIX_FMT_YUV420P10, DRM_FORMAT_NV15, DRM_FORMAT_MOD_LINEAR, 10 },
++    { V4L2_PIX_FMT_NV15, AV_PIX_FMT_YUV420P10, AV_PIX_FMT_NONE, DRM_FORMAT_NV15, DRM_FORMAT_MOD_LINEAR, 10 },
 +#endif
-+    { V4L2_PIX_FMT_NV16, AV_PIX_FMT_NV16, DRM_FORMAT_NV16, DRM_FORMAT_MOD_LINEAR, 8 },
++    { V4L2_PIX_FMT_NV16, AV_PIX_FMT_NV16, AV_PIX_FMT_NV16, DRM_FORMAT_NV16, DRM_FORMAT_MOD_LINEAR, 8 },
 +#if defined(V4L2_PIX_FMT_NV20) && defined(DRM_FORMAT_NV20)
-+    { V4L2_PIX_FMT_NV20, AV_PIX_FMT_YUV422P10, DRM_FORMAT_NV20, DRM_FORMAT_MOD_LINEAR, 10 },
++    { V4L2_PIX_FMT_NV20, AV_PIX_FMT_YUV422P10, AV_PIX_FMT_NONE, DRM_FORMAT_NV20, DRM_FORMAT_MOD_LINEAR, 10 },
 +#endif
 +#if defined(V4L2_PIX_FMT_P010) && defined(DRM_FORMAT_P010)
-+    { V4L2_PIX_FMT_P010, AV_PIX_FMT_P010, DRM_FORMAT_P010, DRM_FORMAT_MOD_LINEAR, 10 },
++    { V4L2_PIX_FMT_P010, AV_PIX_FMT_P010, AV_PIX_FMT_P010, DRM_FORMAT_P010, DRM_FORMAT_MOD_LINEAR, 10 },
 +#endif
 +#if defined(V4L2_PIX_FMT_NV12MT_COL128) && defined(V4L2_PIX_FMT_NV12MT_10_COL128)
-+    { V4L2_PIX_FMT_NV12MT_COL128, AV_PIX_FMT_YUV420P, DRM_FORMAT_NV12, DRM_FORMAT_MOD_BROADCOM_SAND128, 8 },
++    { V4L2_PIX_FMT_NV12MT_COL128, AV_PIX_FMT_YUV420P, AV_PIX_FMT_NV12, DRM_FORMAT_NV12, DRM_FORMAT_MOD_BROADCOM_SAND128, 8 },
 +#if defined(DRM_FORMAT_P030)
-+    { V4L2_PIX_FMT_NV12MT_10_COL128, AV_PIX_FMT_YUV420P10, DRM_FORMAT_P030, DRM_FORMAT_MOD_BROADCOM_SAND128, 10 },
++    { V4L2_PIX_FMT_NV12MT_10_COL128, AV_PIX_FMT_YUV420P10, AV_PIX_FMT_NONE, DRM_FORMAT_P030, DRM_FORMAT_MOD_BROADCOM_SAND128, 10 },
 +#endif
 +#endif
 +};
@@ -683,6 +686,78 @@ index 0000000000..3d92b63367
 +    return ret;
 +}
 +
++static enum AVPixelFormat v4l2request_transfer_format(AVHWFramesContext *hwfc)
++{
++    V4L2RequestFramesContext *hwctx = hwfc->hwctx;
++    AVV4L2RequestFramesContextInternal *fctxi = &hwctx->internal;
++    uint32_t pixelformat = V4L2_TYPE_IS_MULTIPLANAR(fctxi->capture.format.type) ?
++                           fctxi->capture.format.fmt.pix_mp.pixelformat :
++                           fctxi->capture.format.fmt.pix.pixelformat;
++
++    for (int i = 0; i < FF_ARRAY_ELEMS(v4l2request_capture_pixelformats); i++) {
++        if (pixelformat == v4l2request_capture_pixelformats[i].pixelformat)
++            return v4l2request_capture_pixelformats[i].transfer_format;
++    }
++
++    return AV_PIX_FMT_NONE;
++}
++
++static int v4l2request_detile_sand128_nv12(AVFrame *dst, const AVFrame *map,
++                                            const AVFrame *src)
++{
++    /* SAND128 stores each scan-line fragment in a separate 128-byte column. */
++    const AVDRMFrameDescriptor *desc = (const AVDRMFrameDescriptor *)src->data[0];
++    const AVDRMLayerDescriptor *layer;
++    const int column_width = 128;
++    int columns;
++
++    if (!desc || desc->nb_layers != 1 || desc->nb_objects < 1 ||
++        dst->format != AV_PIX_FMT_NV12 || dst->width <= 0 || dst->height <= 0 ||
++        (dst->width & 1) || (dst->height & 1))
++        return AVERROR(EINVAL);
++
++    layer = &desc->layers[0];
++    if (layer->format != DRM_FORMAT_NV12 || layer->nb_planes != 2)
++        return AVERROR(EINVAL);
++
++    columns = (dst->width + column_width - 1) / column_width;
++    for (int plane = 0; plane < 2; plane++) {
++        const AVDRMPlaneDescriptor *drm_plane = &layer->planes[plane];
++        size_t offset, available, column_storage;
++        int object, rows;
++
++        object = drm_plane->object_index;
++        rows = plane == 0 ? dst->height : dst->height / 2;
++        if (object < 0 || object >= desc->nb_objects || !map->data[plane] ||
++            drm_plane->offset < 0 || dst->linesize[plane] < dst->width ||
++            desc->objects[object].format_modifier != DRM_FORMAT_MOD_BROADCOM_SAND128)
++            return AVERROR(EINVAL);
++
++        offset = drm_plane->offset;
++        if (offset > desc->objects[object].size)
++            return AVERROR(EINVAL);
++        available = desc->objects[object].size - offset;
++        if (available % columns)
++            return AVERROR(EINVAL);
++        column_storage = available / columns;
++        if (column_storage % column_width || column_storage / column_width < rows)
++            return AVERROR(EINVAL);
++
++        for (int row = 0; row < rows; row++) {
++            uint8_t *out = dst->data[plane] + row * dst->linesize[plane];
++            for (int column = 0; column < columns; column++) {
++                int column_offset = column * column_width;
++                int bytes = FFMIN(column_width, dst->width - column_offset);
++                const uint8_t *in = map->data[plane] + column * column_storage +
++                                    row * column_width;
++                memcpy(out + column_offset, in, bytes);
++            }
++        }
++    }
++
++    return 0;
++}
++
 +static int v4l2request_transfer_get_formats(AVHWFramesContext *hwfc,
 +                                            enum AVHWFrameTransferDirection dir,
 +                                            enum AVPixelFormat **formats)
@@ -696,13 +771,8 @@ index 0000000000..3d92b63367
 +    if (!fmts)
 +        return AVERROR(ENOMEM);
 +
-+    fmts[0] = hwfc->sw_format;
++    fmts[0] = v4l2request_transfer_format(hwfc);
 +    fmts[1] = AV_PIX_FMT_NONE;
-+
-+    if (hwfc->sw_format == AV_PIX_FMT_YUV420P ||
-+        hwfc->sw_format == AV_PIX_FMT_YUV420P10 ||
-+        hwfc->sw_format == AV_PIX_FMT_YUV422P10)
-+        fmts[0] = AV_PIX_FMT_NONE;
 +
 +    *formats = fmts;
 +    return 0;
@@ -711,10 +781,11 @@ index 0000000000..3d92b63367
 +static int v4l2request_transfer_data_from(AVHWFramesContext *hwfc,
 +                                          AVFrame *dst, const AVFrame *src)
 +{
++    const AVDRMFrameDescriptor *desc = (const AVDRMFrameDescriptor *)src->data[0];
 +    AVFrame *map;
 +    int ret;
 +
-+    if (dst->width > hwfc->width || dst->height > hwfc->height)
++    if (!desc || dst->width > hwfc->width || dst->height > hwfc->height)
 +        return AVERROR(EINVAL);
 +
 +    map = av_frame_alloc();
@@ -729,7 +800,12 @@ index 0000000000..3d92b63367
 +    map->width  = dst->width;
 +    map->height = dst->height;
 +
-+    ret = av_frame_copy(dst, map);
++    if (desc->nb_layers == 1 && desc->nb_objects > 0 &&
++        desc->layers[0].format == DRM_FORMAT_NV12 &&
++        desc->objects[0].format_modifier == DRM_FORMAT_MOD_BROADCOM_SAND128)
++        ret = v4l2request_detile_sand128_nv12(dst, map, src);
++    else
++        ret = av_frame_copy(dst, map);
 +    if (ret)
 +        goto fail;
 +
@@ -6356,4 +6432,3 @@ index 0000000000..4eabdbf31b
 +};
 -- 
 2.52.0
-
