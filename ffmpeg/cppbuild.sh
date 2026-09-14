@@ -57,10 +57,10 @@ ZIMG_VERSION=3.0.6
 MPP_VERSION=1.1.0
 FFMPEG_VERSION=8.1.2
 # Keep the shared Ubuntu 22.04 build image while giving FFmpeg the newer
-# stateless codec UAPI required to compile V4L2 Request HEVC support.
-LINUX_UAPI_VERSION=6.8.0-31.31
-LINUX_UAPI_PACKAGE=linux-libc-dev_${LINUX_UAPI_VERSION}_arm64.deb
-LINUX_UAPI_SHA256=7fd438efa44a794b438e7dde7ac280166fb8d4b1cf7846393ce019714d8bb3e3
+# stateless codec UAPI and Raspberry Pi tiled capture formats it requires.
+LINUX_UAPI_VERSION=6.18.39-1+rpt1
+LINUX_UAPI_PACKAGE=linux-libc-dev_${LINUX_UAPI_VERSION}_all.deb
+LINUX_UAPI_SHA256=be129a06807e154e723edbc4cc1afc797890fde92badae79e4194eba7317397b
 
 # Vendored snapshot of https://code.ffmpeg.org/FFmpeg/FFmpeg/pulls/20847.patch
 # with the unsupported FFmpeg 8.1 Changelog hunk already removed.
@@ -91,7 +91,7 @@ download https://github.com/sekrit-twc/zimg/archive/refs/tags/release-$ZIMG_VERS
 download https://github.com/rockchip-linux/mpp/archive/refs/tags/$MPP_VERSION.tar.gz mpp-$MPP_VERSION.tar.gz
 download https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VERSION.tar.bz2 ffmpeg-$FFMPEG_VERSION.tar.bz2
 if [[ "$PLATFORM" == linux-arm64 ]]; then
-    download https://ports.ubuntu.com/ubuntu-ports/pool/main/l/linux/$LINUX_UAPI_PACKAGE $LINUX_UAPI_PACKAGE
+    download https://archive.raspberrypi.com/debian/pool/main/l/linux/$LINUX_UAPI_PACKAGE $LINUX_UAPI_PACKAGE
     echo "$LINUX_UAPI_SHA256  $LINUX_UAPI_PACKAGE" | sha256sum -c -
 fi
 
@@ -103,6 +103,12 @@ if [[ "$PLATFORM" == linux-arm64 ]]; then
     mkdir -p "$LINUX_UAPI_PATH"
     dpkg-deb -x ../$LINUX_UAPI_PACKAGE "$LINUX_UAPI_PATH"
     LINUX_UAPI_CFLAGS="-isystem $LINUX_UAPI_PATH/usr/include/aarch64-linux-gnu -isystem $LINUX_UAPI_PATH/usr/include"
+    aarch64-linux-gnu-gcc $LINUX_UAPI_CFLAGS -x c -c -o /dev/null - <<"EOF"
+#include <linux/videodev2.h>
+#if !defined(V4L2_PIX_FMT_NV12MT_COL128) || !defined(V4L2_PIX_FMT_NV12MT_10_COL128)
+#error Raspberry Pi tiled V4L2 capture formats are unavailable
+#endif
+EOF
 fi
 case $PLATFORM in
     linux-arm64 | linux-x86_64 | macosx-arm64 | macosx-x86_64 | windows-x86_64)
