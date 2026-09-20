@@ -9231,6 +9231,67 @@ public static final int
 // #endif /* AVUTIL_HWCONTEXT_H */
 
 
+// Parsed from <libavutil/hwcontext_drm.h>
+
+/*
+ * This file is part of FFmpeg.
+ *
+ * FFmpeg is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2.1 of the License, or (at your option) any later version.
+ *
+ * FFmpeg is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with FFmpeg; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
+ */
+
+// #ifndef AVUTIL_HWCONTEXT_DRM_H
+// #define AVUTIL_HWCONTEXT_DRM_H
+
+// #include <stddef.h>
+// #include <stdint.h>
+
+/**
+ * \file
+ * API-specific header for AV_HWDEVICE_TYPE_DRM.
+ *
+ * Internal frame allocation is not currently supported - all frames
+ * must be allocated by the user.  Thus AVHWFramesContext is always
+ * NULL, though this may change if support for frame allocation is
+ * added in future.
+ */
+
+/** enum  */
+public static final int
+    /**
+     * The maximum number of layers/planes in a DRM frame.
+     */
+    AV_DRM_MAX_PLANES = 4;
+// Targeting ../avutil/AVDRMObjectDescriptor.java
+
+
+// Targeting ../avutil/AVDRMPlaneDescriptor.java
+
+
+// Targeting ../avutil/AVDRMLayerDescriptor.java
+
+
+// Targeting ../avutil/AVDRMFrameDescriptor.java
+
+
+// Targeting ../avutil/AVDRMDeviceContext.java
+
+
+
+// #endif /* AVUTIL_HWCONTEXT_DRM_H */
+
+
 // Parsed from <libavutil/adler32.h>
 
 /*
