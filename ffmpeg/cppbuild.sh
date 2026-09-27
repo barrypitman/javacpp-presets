@@ -65,6 +65,9 @@ LINUX_UAPI_SHA256=be129a06807e154e723edbc4cc1afc797890fde92badae79e4194eba731739
 # Vendored snapshot of https://code.ffmpeg.org/FFmpeg/FFmpeg/pulls/20847.patch
 # with the unsupported FFmpeg 8.1 Changelog hunk already removed.
 V4L2_REQUEST_PATCH=ffmpeg-v4l2-request-20847-ffmpeg-8.1.patch
+# Minimal FFmpeg 8.1.2 port of Ming Qian's M2M DMA-BUF export v2.
+# https://ffmpeg.org/pipermail/ffmpeg-devel/2022-March/294515.html
+V4L2_M2M_DRM_PATCH=ffmpeg-v4l2-m2m-drm-prime-8.1.2.patch
 download https://www.nasm.us/pub/nasm/releasebuilds/$NASM_VERSION/nasm-$NASM_VERSION.tar.gz nasm-$NASM_VERSION.tar.gz
 download https://github.com/madler/zlib/releases/download/v${ZLIB#zlib-}/$ZLIB.tar.gz $ZLIB.tar.gz
 download https://downloads.sourceforge.net/project/lame/lame/3.100/$LAME.tar.gz $LAME.tar.gz
@@ -187,6 +190,7 @@ patch -Np1 -d $LAME < ../../lame.patch
 patch -Np1 -d ffmpeg-$FFMPEG_VERSION < ../../ffmpeg.patch
 patch -Np1 -d ffmpeg-$FFMPEG_VERSION < ../../ffmpeg-vulkan.patch
 patch -Np1 -d ffmpeg-$FFMPEG_VERSION < ../../$V4L2_REQUEST_PATCH
+patch -Np1 -d ffmpeg-$FFMPEG_VERSION < ../../$V4L2_M2M_DRM_PATCH
 # patch -Np1 -d ffmpeg-$FFMPEG_VERSION < ../../ffmpeg-flv-support-hevc-opus.patch
 sedinplace 's/bool bEnableavx512/bool bEnableavx512 = false/g' x265-*/source/common/param.h
 sedinplace 's/detect512()/false/g' x265-*/source/common/quant.cpp

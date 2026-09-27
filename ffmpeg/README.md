@@ -21,6 +21,20 @@ Java API documentation is available here:
  * http://bytedeco.org/javacpp-presets/ffmpeg/apidocs/
 
 
+V4L2 M2M DMA-BUF export
+----------------------
+The native build applies `ffmpeg-v4l2-m2m-drm-prime-8.1.2.patch`, a minimal
+port of [Ming Qian's FFmpeg-devel v2 patch](https://ffmpeg.org/pipermail/ffmpeg-devel/2022-March/294515.html).
+The patch header documents the compatibility and correctness adjustments.
+
+On Linux with libdrm and a decoder that supports buffer export, a caller can
+select `AV_PIX_FMT_DRM_PRIME` in `AVCodecContext.get_format`. The returned
+`AVFrame.data(0)` points to an `AVDRMFrameDescriptor`; retain the frame while
+using its DMA-BUF fds. Default format selection and unsupported export retain
+the existing software-frame path, including host NV12. This extends the
+stateful `*_v4l2m2m` decoders independently of the V4L2 Request patch.
+
+
 Sample Usage
 ------------
 Here is a simple example of FFmpeg ported to Java from this C source file:
