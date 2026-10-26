@@ -1,8 +1,12 @@
 
+ * Map `AVVulkanDeviceContext`, `AVVulkanFramesContext`, and `AVVkFrame` from `hwcontext_vulkan.h` and enable Vulkan on Android in presets for FFmpeg ([pull #1818](https://github.com/bytedeco/javacpp-presets/pull/1818))
+ * Fix issues with `hid_t` and `hdf5_java` in presets for HDF5 ([pull #1814](https://github.com/bytedeco/javacpp-presets/pull/1814))
+ * Bundle missing `cudnn_ext` and `cudnn_engines_tensor_ir` libraries for `cuda-redist-cudnn` artifact ([issue #1805](https://github.com/bytedeco/javacpp-presets/issues/1805))
  * Enable Rockchip Media Process Platform (RKMPP) support for FFmpeg ([pull #1804](https://github.com/bytedeco/javacpp-presets/pull/1804))
  * Make ONNX Runtime’s DNNL and OpenVINO dependencies optional ([pull #1802](https://github.com/bytedeco/javacpp-presets/pull/1802))
  * Map full C API of OpenVINO ([pull #1801](https://github.com/bytedeco/javacpp-presets/pull/1801))
  * Enable OpenCL acceleration for FFmpeg ([issue #1800](https://github.com/bytedeco/javacpp-presets/pull/1800))
+ * Upgrade presets for HDF5 2.2.0, PyTorch 2.14.0, CUDA 13.4.2, cuDNN 9.26.0.51, NCCL 2.31.2, TensorRT 11.3.0.99
 
 ### August 10, 2026 version 1.5.14
  * Include missing `refcount.h` header file in presets for CPython ([issue #1798](https://github.com/bytedeco/javacpp-presets/issues/1798))
